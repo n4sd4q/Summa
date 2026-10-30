@@ -1,0 +1,11 @@
+(* Paclet description: PacletDirectoryLoad["/path/to/Einsum"]; Needs["Einsum`"] *)
+Paclet[
+  Name -> "Einsum",
+  Version -> "1.0.0",
+  MathematicaVersion -> "11.3+",
+  Description -> "Fast Einstein summation (einsum) with optimal contraction paths, hyperedges (indices shared by any number of tensors), batched BLAS kernels, plan caching and tensor-network diagrams.",
+  Creator -> "Nazzareno Africani (with Claude)",
+  Extensions -> {
+    {"Kernel", Root -> "Kernel", Context -> "Einsum`"}
+  }
+]
