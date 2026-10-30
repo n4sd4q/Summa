@@ -33,12 +33,12 @@ Cell["Caricamento", "Section",ExpressionUUID->"bf2f39ea-c609-41a1-87ff-e7f63a67c
 
 Cell["\<\
 Get[FileNameJoin[{ParentDirectory[NotebookDirectory[]], \"Kernel\", \
-\"Einsum.wl\"}]]\
+\"Summa.wl\"}]]\
 \>", "Input",
  CellLabel->"In[9]:=",ExpressionUUID->"929be968-853c-4aa9-bf02-fae301957f9f"],
 
 Cell["\<\
-In alternativa: PacletDirectoryLoad[cartellaEinsum]; Needs[\"Einsum`\"], \
+In alternativa: PacletDirectoryLoad[cartellaEinsum]; Needs[\"Summa`\"], \
 oppure copia la cartella in $UserBaseDirectory/Applications.\
 \>", "Text",ExpressionUUID->"8afd4765-a166-4064-9646-bf0c0db956fc"]
 }, Open  ]],
@@ -1990,7 +1990,7 @@ Cell[BoxData[
        Dynamic[Typeset`open$$], ImageSize -> Automatic]},
      "SummaryPanel"],
     DynamicModuleValues:>{}], "]"}],
-  Einsum`EinsumFunction[<|
+  Summa`EinsumFunction[<|
    "Plan" -> <|
      "Spec" -> "bi,ij,bj->b", "Shapes" -> {{5000, 64}, {64, 64}, {5000, 64}}, 
       "Names" -> {"b", "i", "j"}, "Inputs" -> {{1, 2}, {2, 3}, {1, 3}}, 

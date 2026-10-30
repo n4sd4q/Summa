@@ -1,12 +1,12 @@
 (* ::Package:: *)
 
-(* Benchmarks for Einsum`.  Run from a notebook:   Get["/path/to/Einsum/Examples/Benchmarks.wl"]
+(* Benchmarks for Summa`.  Run from a notebook:   Get["/path/to/Summa/Examples/Benchmarks.wl"]
    or from a terminal:  wolframscript -file Benchmarks.wl
    Each line compares Einsum (cached plan, and precompiled EinsumFunction) with a hand-written
    Mathematica equivalent, and checks that the results agree. *)
 
-If[!MemberQ[$Packages, "Einsum`"],
-  Get[FileNameJoin[{DirectoryName[$InputFileName], "..", "Kernel", "Einsum.wl"}]]];
+If[!MemberQ[$Packages, "Summa`"],
+  Get[FileNameJoin[{DirectoryName[$InputFileName], "..", "Kernel", "Summa.wl"}]]];
 
 SetAttributes[time, HoldAll];
 time[expr_] := First[RepeatedTiming[expr;]];

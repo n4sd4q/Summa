@@ -1,10 +1,10 @@
 (* ::Package:: *)
-(* Test suite for the Einsum` package.  Run with:   TestReport["/path/to/Einsum/Tests/EinsumTests.wlt"]
+(* Test suite for the Summa` package.  Run with:   TestReport["/path/to/Summa/Tests/SummaTests.wlt"]
    Expected values of the data-driven tests were computed with numpy.einsum (exact integer arithmetic). *)
 
-If[!MemberQ[$Packages, "Einsum`"],
-  Quiet[Check[Needs["Einsum`"],
-    Get[FileNameJoin[{DirectoryName[$TestFileName], "..", "Kernel", "Einsum.wl"}]]]]];
+If[!MemberQ[$Packages, "Summa`"],
+  Quiet[Check[Needs["Summa`"],
+    Get[FileNameJoin[{DirectoryName[$TestFileName], "..", "Kernel", "Summa.wl"}]]]]];
 
 (* brute-force reference: explicit sum over all index assignments (string specs, no ellipsis) *)
 refEinsum[spec_String, ts___] := Module[{tensors = {ts}, str, pos, lhs, rhs, cpos, terms, all, out, labs, dimOf, sumLabs, sumTuples, elem},
@@ -723,6 +723,6 @@ VerificationTest[Head[EinsumTree["ai,bi,ci->abc", {{3, 4}, {5, 4}, {6, 4}}]], Gr
 VerificationTest[With[{psi = RandomReal[1, {2, 3}]}, Head[EinsumDiagram["ai,bi->ab", psi, psi]]], Graphics, TestID -> "diagram-symbol-names"]
 VerificationTest[With[{opts = {"ShowPath" -> True, "Layout" -> "Circle"}}, Head[EinsumDiagram["ij,jk,ki->", {{2, 3}, {3, 4}, {4, 2}}, opts]]], Graphics, TestID -> "diagram-options-variable"]
 VerificationTest[With[{opts = {"ShowPath" -> True}}, Head[EinsumDiagram["ij,jk,ki->", {{2, 3}, {3, 4}, {4, 2}}, Sequence @@ opts]]], Graphics, TestID -> "diagram-options-sequence"]
-VerificationTest[Module[{n0 = Length[Names["Einsum`Private`ms$*"]]}, Do[EinsumPath["ij,jk,kl,lm->im", {{2, 3}, {3, 4}, {4, 5}, {5, 6}}], {20}]; Length[Names["Einsum`Private`ms$*"]] - n0], 0, TestID -> "no-temporary-leak"]
+VerificationTest[Module[{n0 = Length[Names["Summa`Private`ms$*"]]}, Do[EinsumPath["ij,jk,kl,lm->im", {{2, 3}, {3, 4}, {4, 5}, {5, 6}}], {20}]; Length[Names["Summa`Private`ms$*"]] - n0], 0, TestID -> "no-temporary-leak"]
 VerificationTest[Developer`PackedArrayQ[Einsum["bij,bjk->bik", RandomReal[1, {500, 3, 4}], RandomReal[1, {500, 4, 5}], "BatchMethod" -> "Vectorized"]], True, TestID -> "packed-vec-table"]
 

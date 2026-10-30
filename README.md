@@ -1,9 +1,9 @@
-# Einsum — somme di Einstein veloci per Mathematica
+# Summa — somme di Einstein veloci per Mathematica
 
-`Einsum` è un pacchetto Wolfram Language per contrarre tensori con la sintassi di `numpy.einsum`. Non serve fare a mano trasposizioni e reshape. A differenza di `ResourceFunction["EinsteinSummation"]`, **un indice può comparire quante volte vuoi**: dentro lo stesso tensore (diagonali, tracce) e fra tensori diversi (iperarchi o indici di batch condivisi da 3, 4, … tensori).
+`Summa` è un pacchetto Wolfram Language (funzione principale `Einsum`) per contrarre tensori con la sintassi di `numpy.einsum`. Non serve fare a mano trasposizioni e reshape. A differenza di `ResourceFunction["EinsteinSummation"]`, **un indice può comparire quante volte vuoi**: dentro lo stesso tensore (diagonali, tracce) e fra tensori diversi (iperarchi o indici di batch condivisi da 3, 4, … tensori).
 
 ```mathematica
-Needs["Einsum`"]
+Needs["Summa`"]
 
 Einsum["ij,jk->ik", a, b]                 (* prodotto matriciale (BLAS) *)
 Einsum["ijk,ijk,ijk->", a, b, c]          (* indici ripetuti 3 volte *)
@@ -31,9 +31,9 @@ EinsumDiagram["ai,ibj,jck,kd->abcd"]      (* disegna la rete tensoriale *)
 
 Scegli una delle tre strade:
 
-1. **Diretta**: `Get["/percorso/Einsum/Kernel/Einsum.wl"]`
-2. **Paclet**: `PacletDirectoryLoad["/percorso/Einsum"]; Needs["Einsum`"]`
-3. **Permanente**: copia la cartella `Einsum` in `FileNameJoin[{$UserBaseDirectory, "Applications"}]`. Da quel momento basta `Needs["Einsum`"]`.
+1. **Diretta**: `Get["/percorso/Summa/Kernel/Summa.wl"]`
+2. **Paclet**: `PacletDirectoryLoad["/percorso/Summa"]; Needs["Summa`"]`
+3. **Permanente**: copia la cartella `Summa` in `FileNameJoin[{$UserBaseDirectory, "Applications"}]`. Da quel momento basta `Needs["Summa`"]`.
 
 Serve Mathematica 11.3 o successivo.
 
@@ -93,7 +93,7 @@ Mathics però non ha gli array packed, BLAS né il front end. Le prime cose da f
 ## Test
 
 ```mathematica
-TestReport["/percorso/Einsum/Tests/EinsumTests.wlt"]
+TestReport["/percorso/Summa/Tests/SummaTests.wlt"]
 ```
 
 La suite contiene circa 700 test:
@@ -108,12 +108,12 @@ Per misurare i tempi sulla tua macchina c'è `Examples/Benchmarks.wl`, che confr
 ## File
 
 ```
-Einsum/
+Summa/
 ├── PacletInfo.m
-├── Kernel/Einsum.wl          ← il pacchetto
+├── Kernel/Summa.wl           ← il pacchetto
 ├── Kernel/init.m             ← loader per la cartella Applications
-├── Tests/EinsumTests.wlt     ← suite di test (TestReport)
-├── Examples/EinsumDemo.nb    ← notebook dimostrativo
+├── Tests/SummaTests.wlt      ← suite di test (TestReport)
+├── Examples/SummaDemo.nb     ← notebook dimostrativo
 ├── Examples/Benchmarks.wl    ← benchmark
 ├── Examples/anteprima_diagrammi.png
 └── README.md

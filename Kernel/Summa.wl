@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
 (* :Title: Einsum *)
-(* :Context: Einsum` *)
+(* :Context: Summa` *)
 (* :Package Version: 1.0.0 *)
 (* :Mathematica Version: 11.3 *)
 (* :Summary:
@@ -17,27 +17,27 @@
      - EinsumDiagram / EinsumTree draw the tensor network and the contraction tree.
 *)
 
-BeginPackage["Einsum`"];
+BeginPackage["Summa`"];
 
-Einsum`Einsum::usage =
+Summa`Einsum::usage =
 "Einsum[\"spec\", t1, t2, \[Ellipsis]] evaluates the Einstein summation described by the numpy-style string spec, e.g. \"ij,jk->ik\", \"bij,bjk->bik\", \"ijk,ijk,ijk->\", \"ii->i\", \"...ij,...jk->...ik\". Without \"->\" the output contains the indices appearing exactly once, in alphabetical order.
 Einsum[{{i,j},{j,k}} -> {i,k}, t1, t2] uses arbitrary expressions as index labels.
 Indices can be repeated any number of times, within a tensor and across tensors. The contraction order is optimised and each pairwise contraction is mapped to BLAS or to vectorised kernels. Options: \"Path\" (Automatic, \"Optimal\", \"Greedy\", \"Sequential\" or a list of pairs), \"BatchMethod\" (Automatic, \"Dot\", \"Vectorized\"), \"Cache\" (True).";
 
-Einsum`EinsumPath::usage =
+Summa`EinsumPath::usage =
 "EinsumPath[spec, t1, t2, \[Ellipsis]] or EinsumPath[spec, {dims1, dims2, \[Ellipsis]}] returns an Association describing the contraction path chosen for the einsum and its cost (flops, speed-up over the naive sum, largest intermediate).";
 
-Einsum`EinsumFunction::usage =
+Summa`EinsumFunction::usage =
 "EinsumFunction[spec, {dims1, dims2, \[Ellipsis]}] precompiles the einsum for tensors of the given dimensions. Apply it as ef[t1, t2, \[Ellipsis]]. Properties: ef[\"Path\"], ef[\"Flops\"], ef[\"Speedup\"], ef[\"Diagram\"], ef[\"Tree\"], ef[\"Properties\"].";
 
-Einsum`EinsumDiagram::usage =
+Summa`EinsumDiagram::usage =
 "EinsumDiagram[spec] draws the tensor network of an einsum: tensors are nodes, contracted indices are bonds, output indices are open legs, indices shared by three or more tensors are drawn as hyperedges (COPY-tensor dots), traces as loops and summed-out indices as legs ending in a small circle.
 EinsumDiagram[spec, t1, \[Ellipsis]] or EinsumDiagram[spec, {dims1, \[Ellipsis]}] also shows dimensions. Options: \"ShowPath\" -> True numbers the bonds in contraction order, \"Steps\" -> True returns one frame per pairwise contraction, \"Layout\", \"TensorNames\", \"Highlight\", \"ShowDimensions\".";
 
-Einsum`EinsumTree::usage =
+Summa`EinsumTree::usage =
 "EinsumTree[spec, t1, \[Ellipsis]] or EinsumTree[spec, {dims1, \[Ellipsis]}] draws the contraction tree chosen by the optimiser, with the indices and the cost of every intermediate.";
 
-Einsum`EinsumClearCache::usage =
+Summa`EinsumClearCache::usage =
 "EinsumClearCache[] empties the cache of contraction plans used by Einsum.";
 
 Begin["`Private`"];
@@ -623,8 +623,8 @@ EinsumFunction[a_Association]["Properties"] :=
    "Contractions", "Diagram", "Tree", "Plan"};
 EinsumFunction[a_Association]["Plan"] := a["Plan"];
 EinsumFunction[a_Association]["Shapes"] := a["Plan"]["Shapes"];
-EinsumFunction[a_Association]["Diagram"] := Einsum`EinsumDiagram[a["Plan"]["Spec"], a["Plan"]["Shapes"], "ShowPath" -> True];
-EinsumFunction[a_Association]["Tree"] := Einsum`EinsumTree[a["Plan"]["Spec"], a["Plan"]["Shapes"]];
+EinsumFunction[a_Association]["Diagram"] := Summa`EinsumDiagram[a["Plan"]["Spec"], a["Plan"]["Shapes"], "ShowPath" -> True];
+EinsumFunction[a_Association]["Tree"] := Summa`EinsumTree[a["Plan"]["Spec"], a["Plan"]["Shapes"]];
 EinsumFunction[a_Association][prop : ("Spec" | "Path" | "Method" | "Flops" | "NaiveFlops" | "Speedup" |
     "LargestIntermediate" | "Contractions")] := pathReport[a["Plan"]][prop];
 EinsumFunction[a_Association][ts___] := Catch[
