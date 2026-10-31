@@ -560,13 +560,14 @@ splitOptions[all_List] := Module[{k = Length[all]},
   While[k > 0 && optionQ[all[[k]]], k--];
   {Take[all, k], Drop[all, k]}];
 
-checkOptions[f_Symbol, opts_List] := Scan[
-  If[!MemberQ[ToString /@ First /@ Options[f], ToString[First[#]]], Message[f::optx, First[#], HoldForm[f]]] &, opts];
+(* unknown options get one message and are dropped, so that OptionValue does not complain about them again *)
+checkOptions[f_Symbol, opts_List] := Select[opts,
+  If[MemberQ[ToString /@ First /@ Options[f], ToString[First[#]]], True, Message[f::optx, First[#], HoldForm[f]]; False] &];
 
 Einsum[spec_, args___] := Catch[
   Module[{tensors, opts, key, plan},
     {tensors, opts} = splitOptions[{args}];
-    If[opts =!= {}, checkOptions[Einsum, opts]];
+    If[opts =!= {}, opts = checkOptions[Einsum, opts]];
     tensors = pack /@ tensors;   (* packed inputs make the validation below O(1) *)
     checkArrays[tensors];
     key = {spec, shapeOf /@ tensors, OptionValue[Einsum, opts, "Path"], OptionValue[Einsum, opts, "BatchMethod"]};
@@ -608,7 +609,7 @@ Options[EinsumPath] = {"Path" -> Automatic};
 EinsumPath[spec_, args___] := Catch[
   Module[{tensors, opts},
     {tensors, opts} = splitOptions[{args}];
-    If[opts =!= {}, checkOptions[EinsumPath, opts]];
+    If[opts =!= {}, opts = checkOptions[EinsumPath, opts]];
     pathReport[makePlan[spec, shapesFromArgs[spec, tensors], OptionValue[EinsumPath, opts, "Path"], Automatic]]],
   $einsumTag];
 

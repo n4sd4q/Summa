@@ -1,127 +1,148 @@
-# Summa — somme di Einstein veloci per Mathematica
+# Summa — fast Einstein summation for Mathematica
 
-`Summa` è un pacchetto Wolfram Language (funzione principale `Einsum`) per contrarre tensori con la sintassi di `numpy.einsum`. Non serve fare a mano trasposizioni e reshape. A differenza di `ResourceFunction["EinsteinSummation"]`, **un indice può comparire quante volte vuoi**: dentro lo stesso tensore (diagonali, tracce) e fra tensori diversi (iperarchi o indici di batch condivisi da 3, 4, … tensori).
+`Summa` is a Wolfram Language package for contracting tensors with the syntax of `numpy.einsum` (main function: `Einsum`). No
+manual transposes and reshapes. Unlike `ResourceFunction["EinsteinSummation"]`, **an index may appear any number of times**: within
+one tensor (diagonals, traces) and across tensors (hyperedges, or batch indices shared by 3, 4, … tensors).
 
 ```mathematica
 Needs["Summa`"]
 
-Einsum["ij,jk->ik", a, b]                 (* prodotto matriciale (BLAS) *)
-Einsum["ijk,ijk,ijk->", a, b, c]          (* indici ripetuti 3 volte *)
-Einsum["ai,bi,ci->abc", A, B, C]          (* ricostruzione CP: i condiviso da 3 tensori *)
-Einsum["bij,bjk->bik", x, y]              (* matmul batched *)
-Einsum["pa,aqb,brc,cs,pA,AqB,BrC,Cs->", A1, A2, A3, A4, A1, A2, A3, A4]  (* norma di un MPS *)
-EinsumDiagram["ai,ibj,jck,kd->abcd"]      (* disegna la rete tensoriale *)
+Einsum["ij,jk->ik", a, b]                 (* matrix product (BLAS) *)
+Einsum["ijk,ijk,ijk->", a, b, c]          (* an index repeated 3 times *)
+Einsum["ai,bi,ci->abc", A, B, C]          (* CP reconstruction: i shared by 3 tensors *)
+Einsum["bij,bjk->bik", x, y]              (* batched matmul *)
+Einsum["pa,aqb,brc,cs,pA,AqB,BrC,Cs->", A1, A2, A3, A4, A1, A2, A3, A4]  (* norm of an MPS *)
+EinsumDiagram["ai,ibj,jck,kd->abcd"]      (* draws the tensor network *)
 ```
 
-## Caratteristiche
+## Features
 
-- **Sintassi numpy completa**: `"ij,jk->ik"`, output implicito (`"ij,jk"` dà `"ik"` e `"ba"` traspone), ellissi `"...ij,...jk->...ik"` con broadcasting, assi di dimensione 1 che fanno broadcasting, operandi scalari (`",ij->ij"`), etichette Unicode (`"αβ,βγ->αγ"`) e freccia `→`.
-- **Sintassi a liste** con etichette arbitrarie: `Einsum[{{"bond1","x"},{"x","bond2"}} -> {"bond2","bond1"}, a, b]`.
-- **Indici ripetuti a piacere**: diagonali generalizzate (`"iij->j"`, `"iii->i"`), tracce, somme, iperarchi a 3 o più gambe.
-- **Ordine di contrazione ottimizzato**: DP esatta sui sottoinsiemi (minimo numero di flop) fino a 8 tensori, poi greedy alla opt_einsum. In alternativa ordine sequenziale o un percorso scelto da te.
-- **Kernel vettorializzati**. Ogni contrazione a coppie viene tradotta in:
-  - `Dot` (BLAS/MKL), dopo un unico `Transpose` + `ArrayReshape` per operando e solo se serve davvero;
-  - contrazioni batched (`C[b,i,k] = Σ_j L[b,i,j] R[b,j,k]`), con un modello di costo che sceglie fra un ciclo di `Dot` BLAS (matrici grandi) e il broadcasting vettoriale su array packed (batch grandi di matrici piccole);
-  - prodotti di Hadamard o di broadcasting (prefisso/suffisso) senza trasposizioni.
-- **Cache dei piani**: la seconda chiamata con le stesse dimensioni salta parsing e ottimizzazione. `EinsumFunction` precompila un einsum per forme fisse, utile nei loop.
-- **Visualizzazione**: `EinsumDiagram` (rete tensoriale), `EinsumTree` (albero di contrazione con i costi) e `"Steps" -> True` (un fotogramma per contrazione, da animare).
-- Funziona anche con array **simbolici**, **complessi**, interi esatti e `SparseArray` nei passi di tipo `Dot`. Ogni argomento che non è una lista (anche `Sqrt[2]` o `a + b`) è uno scalare.
+- **Full numpy syntax**: `"ij,jk->ik"`, implicit output (`"ij,jk"` gives `"ik"`, `"ba"` transposes), ellipsis `"...ij,...jk->...ik"`
+  with broadcasting, broadcasting of axes of size 1, scalar operands (`",ij->ij"`), Unicode labels (`"αβ,βγ->αγ"`) and the arrow `→`.
+- **List syntax** with arbitrary labels: `Einsum[{{"bond1","x"},{"x","bond2"}} -> {"bond2","bond1"}, a, b]`.
+- **Indices repeated at will**: generalised diagonals (`"iij->j"`, `"iii->i"`), traces, sums, hyperedges with 3 or more legs.
+- **Optimised contraction order**: exact dynamic programming over subsets (minimum number of flops) up to 8 tensors, then a greedy
+  search as in opt_einsum. Alternatively a sequential order or a path of your choice.
+- **Vectorised kernels**. Every pairwise contraction becomes one of:
+  - `Dot` (BLAS/MKL), after a single `Transpose` + `ArrayReshape` per operand, and only when needed;
+  - a batched contraction (`C[b,i,k] = Σ_j L[b,i,j] R[b,j,k]`), with a cost model that chooses between a loop of BLAS `Dot` (large
+    matrices) and vectorised broadcasting on packed arrays (large batches of small matrices);
+  - a Hadamard or broadcasting product (prefix/suffix), without transposes.
+- **Plan cache**: a second call with the same shapes skips parsing and optimisation. `EinsumFunction` precompiles an einsum for fixed
+  shapes, for use in loops.
+- **Visualisation**: `EinsumDiagram` (the tensor network), `EinsumTree` (the contraction tree with costs) and `"Steps" -> True` (one
+  frame per contraction, to animate).
+- Also works with **symbolic**, **complex** and exact integer arrays, and with `SparseArray` in the `Dot`-type steps. Any argument
+  that is not a list (even `Sqrt[2]` or `a + b`) is a scalar.
 
-## Installazione
+## Installation
 
-Scegli una delle tre strade:
+Any of the three:
 
-1. **Diretta**: `Get["/percorso/Summa/Kernel/Summa.wl"]`
-2. **Paclet**: `PacletDirectoryLoad["/percorso/Summa"]; Needs["Summa`"]`
-3. **Permanente**: copia la cartella `Summa` in `FileNameJoin[{$UserBaseDirectory, "Applications"}]`. Da quel momento basta `Needs["Summa`"]`.
+1. **Direct**: `Get["/path/to/Summa/Kernel/Summa.wl"]`
+2. **Paclet**: `PacletDirectoryLoad["/path/to/Summa"]; Needs["Summa`"]`
+3. **Permanent**: copy the `Summa` folder into `FileNameJoin[{$UserBaseDirectory, "Applications"}]`; from then on `Needs["Summa`"]`
+   is enough.
 
-Serve Mathematica 11.3 o successivo.
+Requires Mathematica 11.3 or later.
 
-## Funzioni
+## Functions
 
-| Funzione | Cosa fa |
+| Function | What it does |
 |---|---|
-| `Einsum[spec, t1, t2, …]` | calcola l'einsum. Opzioni: `"Path"` (`Automatic`, `"Optimal"`, `"Greedy"`, `"Sequential"`, `{{i,j},…}`), `"BatchMethod"` (`Automatic`, `"Dot"`, `"Vectorized"`), `"Cache"` (`True`) |
-| `EinsumPath[spec, t1, …]` o `EinsumPath[spec, {dims1, …}]` | percorso scelto (formato lineare numpy, base 1), flop, flop naïf, speed-up, intermedio più grande, stringhe delle singole contrazioni |
-| `EinsumFunction[spec, {dims1, …}]` | einsum precompilato: `ef[t1, t2]`. Proprietà: `ef["Path"]`, `ef["Flops"]`, `ef["Diagram"]`, `ef["Tree"]`, … Ha anche un riquadro di riepilogo con l'icona della rete |
-| `EinsumDiagram[spec]`, `EinsumDiagram[spec, t1, …]` | disegno della rete tensoriale. Opzioni: `"ShowPath"`, `"Steps"`, `"Layout"` (`Automatic`, `"Circle"`, `"Line"` o coordinate), `"TensorNames"`, `"Highlight"`, `"ShowDimensions"` |
-| `EinsumTree[spec, t1, …]` | albero di contrazione con indici, indici sommati e flop di ogni intermedio |
-| `EinsumClearCache[]` | svuota la cache dei piani |
+| `Einsum[spec, t1, t2, …]` | computes the einsum. Options: `"Path"` (`Automatic`, `"Optimal"`, `"Greedy"`, `"Sequential"`, `{{i,j},…}`), `"BatchMethod"` (`Automatic`, `"Dot"`, `"Vectorized"`), `"Cache"` (`True`) |
+| `EinsumPath[spec, t1, …]` or `EinsumPath[spec, {dims1, …}]` | the chosen path (numpy linear format, 1-based), flops, naive flops, speed-up, largest intermediate, the string of each contraction |
+| `EinsumFunction[spec, {dims1, …}]` | a precompiled einsum: `ef[t1, t2]`. Properties: `ef["Path"]`, `ef["Flops"]`, `ef["Diagram"]`, `ef["Tree"]`, … It has a summary box with the icon of the network |
+| `EinsumDiagram[spec]`, `EinsumDiagram[spec, t1, …]` | drawing of the tensor network. Options: `"ShowPath"`, `"Steps"`, `"Layout"` (`Automatic`, `"Circle"`, `"Line"` or coordinates), `"TensorNames"`, `"Highlight"`, `"ShowDimensions"` |
+| `EinsumTree[spec, t1, …]` | contraction tree with the indices, the summed indices and the flops of each intermediate |
+| `EinsumClearCache[]` | empties the plan cache |
 
-## Come vengono disegnati gli iperarchi
+## How hyperedges are drawn
 
-Ogni indice è un tensore COPY (una delta) con una gamba per ciascuna occorrenza, più una se l'indice compare nell'output:
+Every index is a COPY tensor (a delta) with one leg per occurrence, plus one if the index appears in the output:
 
-- **2 gambe**: è un filo. Diventa un legame fra due tensori, una gamba aperta (indice di output) oppure un anello (traccia).
-- **1 gamba**: l'indice viene sommato. La gamba finisce in un cerchietto, cioè una contrazione col vettore di uni.
-- **3 o più gambe**: è un **iperarco**, disegnato come un pallino viola collegato a tutti i tensori che lo condividono.
+- **2 legs**: a wire. It becomes a bond between two tensors, an open leg (an output index) or a loop (a trace).
+- **1 leg**: the index is summed over. The leg ends in a small circle, i.e. a contraction with the vector of ones.
+- **3 or more legs**: a **hyperedge**, drawn as a purple dot connected to all the tensors that share it.
 
-Le gambe pendenti si sistemano negli spazi angolari liberi. Il layout automatico usa MDS classico sulle distanze del grafo, rifinito con stress majorization: le catene (MPS) vengono dritte, gli anelli circolari, le griglie a griglia. Lo spessore dei legami cresce con log(dimensione). I tensori con lo stesso nome hanno lo stesso colore, e passando il mouse su un elemento compare un tooltip con indici, dimensioni e ruolo.
+Dangling legs are placed in the free angular gaps. The automatic layout uses classical MDS on the graph distances, refined by stress
+majorization: chains (MPS) come out straight, rings circular, grids as grids. The thickness of a bond grows with log(dimension).
+Tensors with the same name have the same colour, and hovering over an element shows a tooltip with its indices, dimensions and role.
 
-`Examples/anteprima_diagrammi.png` mostra un'anteprima approssimata dei disegni, generata fuori da Mathematica.
+`Examples/diagram_preview.png` is an approximate preview of the drawings, made outside Mathematica.
 
-`EinsumDiagram[..., "ShowPath" -> True]` mette su ogni legame il numero del passo in cui viene contratto. `ListAnimate[EinsumDiagram[spec, dims, "Steps" -> True]]` mostra la contrazione passo per passo: la coppia evidenziata è quella contratta subito dopo.
+`EinsumDiagram[..., "ShowPath" -> True]` writes on each bond the number of the step in which it is contracted.
+`ListAnimate[EinsumDiagram[spec, dims, "Steps" -> True]]` shows the contraction step by step: the highlighted pair is the one
+contracted next.
 
-## Come funziona (e perché è veloce)
+## How it works (and why it is fast)
 
-1. **Parsing e risoluzione**: le etichette diventano interi, l'ellissi si espande e le dimensioni vengono controllate, col broadcasting degli assi di dimensione 1.
-2. **Preprocessing per operando**: le diagonali degli indici ripetuti si estraggono con `Transpose[t, {1,1,2,…}]`, cioè un Transpose con livelli ripetuti. Gli indici che non servono altrove vengono sommati subito con `Total`.
-3. **Percorso**: per ogni sottoinsieme S di tensori, il risultato di S tiene solo gli indici che servono ancora fuori da S o nell'output. È questo che trasforma un indice condiviso da tre o più tensori in un **indice di batch** nelle contrazioni intermedie. Su questa base gira la DP O(3ⁿ) esatta per n ≤ 8, altrimenti la greedy.
-4. **Lowering**: ogni passo L×R viene classificato in indici di batch, contratti e liberi. Si sceglie la combinazione di ordine degli operandi, ordine degli indici di batch e ordine degli indici contratti che minimizza i dati da trasporre, finale compreso. Poi si esegue il kernel migliore:
-   - batch vuoto: `Dot` su matrici 2D;
-   - batch con matrici grandi: `MapThread[Dot, …]`;
-   - batch con matrici piccole: broadcasting vettoriale e `Total`;
-   - nessun indice sommato con insiemi di indici annidati: prodotto con broadcasting.
-5. **Esecuzione**: gli intermedi vengono liberati appena usati e il piano completo resta in cache.
+1. **Parsing and resolution**: labels become integers, the ellipsis is expanded and the dimensions are checked, with broadcasting of
+   the axes of size 1.
+2. **Per-operand preprocessing**: the diagonals of repeated indices are extracted with `Transpose[t, {1,1,2,…}]` (a Transpose with
+   repeated levels). Indices needed nowhere else are summed at once with `Total`.
+3. **Path**: for every subset S of tensors, the result of S keeps only the indices still needed outside S or in the output. This is
+   what turns an index shared by three or more tensors into a **batch index** of the intermediate contractions. On this basis runs the
+   exact O(3ⁿ) dynamic programming for n ≤ 8, otherwise the greedy search.
+4. **Lowering**: each step L×R is classified into batch, contracted and free indices. The combination of operand order, batch-index
+   order and contracted-index order that minimises the data to transpose, the final result included, is chosen. Then the best kernel
+   runs:
+   - empty batch: `Dot` on 2D matrices;
+   - batch of large matrices: `MapThread[Dot, …]`;
+   - batch of small matrices: vectorised broadcasting and `Total`;
+   - no summed index, nested index sets: broadcasting product.
+5. **Execution**: intermediates are freed as soon as they are used, and the whole plan stays in the cache.
 
-Consigli per la massima velocità:
+Tips for maximum speed:
 
-- usa array packed (`RandomReal`, `N[...]`, `Developer`ToPackedArray`);
-- dentro i loop usa `EinsumFunction`, oppure chiama `Einsum` sempre con le stesse forme così la cache viene riusata;
-- per reti con più di 8 tensori, se il tempo di pianificazione è trascurabile rispetto al calcolo, prova `"Path" -> "Optimal"` (fino a 14 tensori, oltre si usa la greedy con un avviso).
+- use packed arrays (`RandomReal`, `N[...]`, `Developer`ToPackedArray`);
+- in loops use `EinsumFunction`, or call `Einsum` always with the same shapes so that the cache is reused;
+- for networks of more than 8 tensors, if the planning time is negligible compared to the computation, try `"Path" -> "Optimal"` (up
+  to 14 tensors; beyond that the greedy search is used, with a warning).
 
-## Stato della verifica
+## Verification
 
-Il pacchetto è stato sviluppato senza una licenza Mathematica. È stato verificato così:
+The package was first developed without a Mathematica licence and checked with Mathics3 (an open-source Wolfram Language interpreter)
+against `numpy.einsum` on about 2500 random and hand-picked einsums, with every path and every kernel (0 errors); the dynamic
+programming was checked against an exhaustive search. With Mathematica 15.0 the whole test suite passes (700 of 700).
 
-- eseguendolo con Mathics3 (interprete open source del Wolfram Language) e confrontando i risultati con `numpy.einsum` su circa 2500 einsum casuali e scelti a mano, con tutti i percorsi e tutti i kernel: 0 errori;
-- controllando che la DP trovi esattamente il costo minimo, confrontandola con una ricerca esaustiva;
-- facendo rileggere il codice a parte per la semantica specifica di Mathematica (array packed, garbage collection dei simboli temporanei, opzioni).
-
-Mathics però non ha gli array packed, BLAS né il front end. Le prime cose da fare con Mathematica sono quindi `TestReport` sulla suite e `Examples/Benchmarks.wl` per i tempi reali.
-
-## Test
+## Tests
 
 ```mathematica
-TestReport["/percorso/Summa/Tests/SummaTests.wlt"]
+TestReport["/path/to/Summa/Tests/SummaTests.wlt"]
 ```
 
-La suite contiene circa 700 test:
+About 700 tests:
 
-- 213 casi con risultati attesi calcolati da `numpy.einsum` in aritmetica intera esatta. Sono 63 casi scelti a mano, che coprono ogni kernel, più 150 casuali. I 63 casi scelti a mano vengono ripetuti con ogni strategia di percorso e con entrambi i metodi di batch;
-- 40 reti per cui il costo del percorso `"Optimal"` deve coincidere con una ricerca esaustiva su tutti gli ordini di contrazione (e `"Greedy"` non può fare meglio);
-- confronti in precisione macchina (reali e complessi) con una somma esplicita di riferimento;
-- input simbolici e sparsi, sintassi alternative, messaggi di errore, `EinsumFunction` e diagrammi.
+- 213 cases with expected results computed by `numpy.einsum` in exact integer arithmetic: 63 hand-picked cases that cover every
+  kernel, plus 150 random ones. The 63 hand-picked cases are repeated with every path strategy and with both batch methods;
+- 40 networks for which the cost of the `"Optimal"` path must equal an exhaustive search over all contraction orders (and `"Greedy"`
+  cannot do better);
+- comparisons in machine precision (real and complex) with an explicit reference sum;
+- symbolic and sparse inputs, alternative syntaxes, error messages, `EinsumFunction` and the diagrams.
 
-Per misurare i tempi sulla tua macchina c'è `Examples/Benchmarks.wl`, che confronta con equivalenti scritti a mano: `Dot`, `MapThread`, `TensorContract`, `Total`.
+`Examples/Benchmarks.wl` measures the timings on your machine against hand-written equivalents: `Dot`, `MapThread`,
+`TensorContract`, `Total`.
 
-## File
+## Files
 
 ```
 Summa/
 ├── PacletInfo.m
-├── Kernel/Summa.wl           ← il pacchetto
-├── Kernel/init.m             ← loader per la cartella Applications
-├── Tests/SummaTests.wlt      ← suite di test (TestReport)
-├── Examples/SummaDemo.nb     ← notebook dimostrativo
-├── Examples/Benchmarks.wl    ← benchmark
-├── Examples/anteprima_diagrammi.png
+├── Kernel/Summa.wl           ← the package
+├── Kernel/init.m             ← loader for the Applications folder
+├── Tests/SummaTests.wlt      ← test suite (TestReport)
+├── Examples/SummaDemo.nb     ← demo notebook
+├── Examples/Benchmarks.wl    ← benchmarks
+├── Examples/diagram_preview.png
 └── README.md
 ```
 
-## Limitazioni note
+## Known limitations
 
-- Gli indici di output non possono ripetersi (`"i->ii"` non è ammesso, come in numpy).
-- La DP ottimale è esponenziale: oltre 8 tensori il default è greedy, e `"Optimal"` è accettato fino a 14 tensori.
-- `SparseArray` resta sparso solo nei passi di tipo `Dot`; negli altri kernel viene convertito in denso.
-- Le costanti del modello di costo per i passi batched sono stime ragionevoli, non calibrate sulla tua macchina. Puoi forzare un kernel con `"BatchMethod"`.
+- Output indices cannot repeat (`"i->ii"` is not allowed, as in numpy).
+- The optimal dynamic programming is exponential: beyond 8 tensors the default is greedy, and `"Optimal"` is accepted up to 14 tensors.
+- A `SparseArray` stays sparse only in the `Dot`-type steps; the other kernels convert it to dense.
+- The constants of the cost model for batched steps are reasonable estimates, not calibrated on your machine. A kernel can be forced
+  with `"BatchMethod"`.
+
