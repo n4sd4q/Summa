@@ -378,6 +378,20 @@ pairInstr[la_List, lb_List, bat_List, con_List, fa_List, fb_List, dims_List, fin
   ]
 ];
 
+(* Batched contraction of two operands with the same labels ("kh,kh->h", "khn,hkn->kh"): the batched matrix product
+   would transpose both to put the batch labels first; instead, multiply them in the layout of one of them (the one whose
+   remaining labels are already in the final order, if any) and sum the contracted levels. Used only when the batched
+   product would transpose an operand. With a free label on one side the batched product (BLAS) is faster. *)
+reduceInstr[la_List, lb_List, bat_List, con_List, fa_List, fb_List, dims_List, final_, bmeth_] := Module[
+  {pb, small, lB, lS, keep},
+  pb = pairInstr[la, lb, bat, con, fa, fb, dims, final, bmeth];
+  {small, lB, lS} = If[final =!= None && Select[lb, !MemberQ[con, #] &] === final, {"A", lb, la}, {"B", la, lb}];
+  keep = Select[lB, !MemberQ[con, #] &];
+  If[pb[[1]]["PermL"] === None && pb[[1]]["PermR"] === None, pb,
+    {<|"Type" -> "Reduce", "Small" -> small, "PermSmall" -> permFor[lS, lB],
+       "SumPos" -> Reverse[Sort[Flatten[Position[lB, #] & /@ con]]]|>, keep}]
+];
+
 stepInstruction[la0_List, lb0_List, kset_List, dims_List, final_, bmeth_] := Module[
   {sa, sb, la, lb, bat, con, fa, fb, r = None},
   (* labels living only in one operand and not needed afterwards: sum them first *)
@@ -394,6 +408,8 @@ stepInstruction[la0_List, lb0_List, kset_List, dims_List, final_, bmeth_] := Mod
       fa = Select[la, !MemberQ[lb, #] &];
       fb = Select[lb, !MemberQ[la, #] &];
       If[con === {} && (fa === {} || fb === {}), r = broadcastInstr[la, lb, fa, fb, dims, final]];
+      If[r === None && bat =!= {} && con =!= {} && fa === {} && fb === {} && bmeth === Automatic,
+        r = reduceInstr[la, lb, bat, con, fa, fb, dims, final, bmeth]];
       If[r === None, r = pairInstr[la, lb, bat, con, fa, fb, dims, final, bmeth]]
   ];
   {Join[<|"SumA" -> Reverse[Sort[Flatten[Position[la0, #] & /@ sa]]],
@@ -498,6 +514,9 @@ runStep[st_Association, x0_, y0_] := Module[{x = sumLv[x0, st["SumA"]], y = sumL
     "Prefix", If[st["Small"] === "A",
       dense[tp[x, st["PermSmall"]]] dense[y],
       dense[tp[y, st["PermSmall"]]] dense[x]],
+    "Reduce", If[st["Small"] === "A",
+      sumLv[dense[tp[x, st["PermSmall"]]] dense[y], st["SumPos"]],
+      sumLv[dense[tp[y, st["PermSmall"]]] dense[x], st["SumPos"]]],
     "Suffix", If[st["Small"] === "A",
       dense[y] ConstantArray[dense[tp[x, st["PermSmall"]]], st["Rep"]],
       dense[x] ConstantArray[dense[tp[y, st["PermSmall"]]], st["Rep"]]],

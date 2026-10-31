@@ -27,7 +27,8 @@ EinsumDiagram["ai,ibj,jck,kd->abcd"]      (* draws the tensor network *)
   - `Dot` (BLAS/MKL), after a single `Transpose` + `ArrayReshape` per operand, and only when needed;
   - a batched contraction (`C[b,i,k] = Σ_j L[b,i,j] R[b,j,k]`), with a cost model that chooses between a loop of BLAS `Dot` (large
     matrices) and vectorised broadcasting on packed arrays (large batches of small matrices);
-  - a Hadamard or broadcasting product (prefix/suffix), without transposes.
+  - a Hadamard or broadcasting product (prefix/suffix), without transposes;
+  - a product and `Total` in place for a batched contraction of two operands with the same indices.
 - **Plan cache**: a second call with the same shapes skips parsing and optimisation. `EinsumFunction` precompiles an einsum for fixed
   shapes, for use in loops.
 - **Visualisation**: `EinsumDiagram` (the tensor network), `EinsumTree` (the contraction tree with costs) and `"Steps" -> True` (one
@@ -90,6 +91,8 @@ contracted next.
    - empty batch: `Dot` on 2D matrices;
    - batch of large matrices: `MapThread[Dot, …]`;
    - batch of small matrices: vectorised broadcasting and `Total`;
+   - batch of two operands with the same indices (`"kh,kh->h"`, `"khn,hkn->kh"`): product in the layout of one operand and `Total`
+     over the contracted levels, instead of transposing both to put the batch index first (2–8× faster);
    - no summed index, nested index sets: broadcasting product.
 5. **Execution**: intermediates are freed as soon as they are used, and the whole plan stays in the cache.
 

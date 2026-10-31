@@ -628,7 +628,10 @@ $refSpecs = {
   {"ij,jk,jl->ikl", {{2, 3}, {3, 4}, {3, 2}}}, {"iij->j", {{3, 3, 4}}}, {"ii,ii,ij->j", {{3, 3}, {3, 3}, {3, 2}}},
   {"abc,cd,dbe->ae", {{2, 3, 4}, {4, 2}, {2, 3, 2}}}, {"ab,bc,cd,da->", {{3, 4}, {4, 2}, {2, 5}, {5, 3}}},
   {"aib,bjc,ckd,dla->ijkl", {{2, 2, 3}, {3, 2, 2}, {2, 2, 3}, {3, 2, 2}}}, {"ij,ij,ij,ij->i", {{4, 3}, {4, 3}, {4, 3}, {4, 3}}},
-  {"bi,bj,bk->bijk", {{5, 2}, {5, 3}, {5, 2}}}, {"xyz,yz->x", {{2, 3, 4}, {3, 4}}}, {"ijk,kji->", {{2, 3, 4}, {4, 3, 2}}}};
+  {"bi,bj,bk->bijk", {{5, 2}, {5, 3}, {5, 2}}}, {"xyz,yz->x", {{2, 3, 4}, {3, 4}}}, {"ijk,kji->", {{2, 3, 4}, {4, 3, 2}}},
+  (* batched contractions with no free label on one or both sides ("Reduce" steps when both) *)
+  {"kh,kh->h", {{5, 4}, {5, 4}}}, {"kh,khn->hn", {{5, 4}, {5, 4, 3}}}, {"khn,hkn->kh", {{3, 4, 5}, {4, 3, 5}}},
+  {"kh,hkn->nh", {{3, 4}, {4, 3, 2}}}, {"khn,kh->nh", {{3, 4, 2}, {3, 4}}}, {"kh,kh,kh->h", {{5, 4}, {5, 4}, {5, 4}}}};
 Do[
   With[{spec = s[[1]], ts = RandomReal[{-1, 1}, #] & /@ s[[2]], cts = RandomComplex[{-1 - I, 1 + I}, #] & /@ s[[2]]},
     VerificationTest[maxDiff[Einsum[spec, Sequence @@ ts], refEinsum[spec, Sequence @@ ts]] < 10^-10, True, TestID -> "ref-real-" <> spec];
@@ -641,6 +644,13 @@ Do[
 VerificationTest[Developer`PackedArrayQ[Einsum["bij,bjk->bik", RandomReal[1, {50, 3, 3}], RandomReal[1, {50, 3, 3}]]], True, TestID -> "packed-vec"]
 VerificationTest[Developer`PackedArrayQ[Einsum["bij,bjk->bik", RandomReal[1, {5, 40, 40}], RandomReal[1, {5, 40, 40}]]], True, TestID -> "packed-dot"]
 VerificationTest[Developer`PackedArrayQ[Einsum["ijk,ijk,ijk->ij", Sequence @@ RandomReal[1, {3, 4, 5, 6}]]], True, TestID -> "packed-hyper"]
+VerificationTest[Developer`PackedArrayQ[Einsum["khn,hkn->kh", RandomReal[1, {6, 5, 4}], RandomReal[1, {5, 6, 4}]]], True, TestID -> "packed-reduce"]
+
+(* the batch label is not the first one: multiply in place and sum, instead of transposing both operands *)
+VerificationTest[#["Type"] & /@ EinsumFunction["kh,kh->h", {{5, 4}, {5, 4}}]["Plan"]["Steps"], {"Reduce"}, TestID -> "reduce-used"]
+VerificationTest[#["Type"] & /@ EinsumFunction["khn,hkn->kh", {{5, 4, 3}, {4, 5, 3}}]["Plan"]["Steps"], {"Reduce"}, TestID -> "reduce-used-permuted"]
+VerificationTest[#["Type"] & /@ EinsumFunction["kh,khn->hn", {{5, 4}, {5, 4, 3}}]["Plan"]["Steps"], {"Batch"}, TestID -> "reduce-not-with-free-label"]
+VerificationTest[#["Type"] & /@ EinsumFunction["bi,bi->b", {{5, 4}, {5, 4}}]["Plan"]["Steps"], {"Batch"}, TestID -> "reduce-not-needed"]
 
 (* agreement with TensorContract / Dot on larger random data *)
 With[{a = RandomReal[1, {20, 30}], b = RandomReal[1, {30, 40}], c = RandomReal[1, {40, 10}]},
