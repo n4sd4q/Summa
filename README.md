@@ -25,15 +25,15 @@
   <a href="#installation"><b>Installation</b></a>
 </p>
 
-Summa contracts tensors with the syntax of `numpy.einsum`: you write the indices of a product as on paper, `"ij,jk->ik"`,
-and Summa finds the cheapest order of the contractions and runs each one on BLAS or on vectorised kernels. An index may
-appear in any number of tensors — diagonals, traces, hyperedges, batch indices — and the network can be drawn as it is
-computed.
+Summa contracts tensors with the syntax of `numpy.einsum`: you write a contraction as on paper, the indices of every
+factor, `"ij,jk->ik"`, and Summa works out how to compute it — the cheapest order of the pairwise contractions and the
+kernel of each, BLAS or vectorised, with no transposes, reshapes or intermediate arrays by hand. An index may appear in
+any number of tensors — diagonals, traces, hyperedges, batch indices — and the network can be drawn as it is computed.
 
 ## What it does
 
-- **Indices as on paper.** The string syntax of numpy, `"ij,jk->ik"`, with implicit output, ellipsis and broadcasting,
-  Unicode labels, or lists of labels of any kind.
+- **Written as on paper, computed for you.** The string syntax of numpy, `"ij,jk->ik"`, with implicit output, ellipsis
+  and broadcasting, Unicode labels, or lists of labels of any kind; how to compute it is Summa's job.
 - **Indices repeated at will.** Diagonals, traces and sums, and an index shared by three or more tensors (hyperedges, batch
   indices) in a single call.
 - **The cheapest order.** The order of the pairwise contractions minimises the flops (an exact search up to eight tensors,
@@ -87,7 +87,9 @@ m = {{a, b}, {c, d}};
 \right)\right\}
 ```
 
-**An index in any number of tensors.** Here `i` is shared by three vectors, $\sum_i x_iy_iz_i$:
+**An index in any number of tensors.** `ResourceFunction["EinsteinSummation"]` refuses an index that appears three
+times, and `TensorContract` sums one only after building the whole outer product. In Summa an index may appear in any
+number of tensors: here `i` is shared by three vectors, $\sum_i x_iy_iz_i$:
 
 ```mathematica
 Einsum["i,i,i->", {a, b}, {c, d}, {e, f}]
@@ -103,6 +105,24 @@ EinsumDiagram["ai,bi,ci->abc"]
 ```
 
 <p align="center"><img src="Documentation/readme_hyperedge.png" width="300" alt="The tensor network of ai,bi,ci->abc: three tensors A, B, C, each with an open leg a, b, c, joined by the hyperedge i, drawn as a purple dot"></p>
+
+**A Kubo formula, as it is written.** The optical conductivity of a two-band chain,
+$\sigma(\omega)=\frac{i}{N}\sum_k\sum_{nm}J_{nm}(k)J_{mn}(k)F_{nm}(k,\omega)$, in which $k$, $n$ and $m$ each appear in
+three tensors: one einsum, with no loop and no intermediate array written by hand.
+
+```mathematica
+h[k_] := (1 + 0.6 Cos[k]) PauliMatrix[1] + 0.6 Sin[k] PauliMatrix[2] + 0.4 PauliMatrix[3];   (* the Rice-Mele chain *)
+ks = Most[Subdivide[-Pi, Pi, 400]]; ws = Subdivide[0.5, 4., 350];
+{e, u} = Transpose[Eigensystem /@ (h /@ ks)];
+current = MapThread[Conjugate[#1] . (D[h[q], q] /. q -> #2) . Transpose[#1] &, {u, ks}];
+f = UnitStep[-e];   (* half filling *)
+weight = Table[If[n == m, 0, (f[[q, n]] - f[[q, m]])/(e[[q, m]] - e[[q, n]])/(w - e[[q, m]] + e[[q, n]] + 0.05 I)],
+   {q, 400}, {n, 2}, {m, 2}, {w, ws}];
+sigma = I/400 Einsum["knm,kmn,knmw->w", current, current, weight];
+ListLinePlot[Transpose[{ws, Re[sigma]}], AxesLabel -> {"\[Omega]", "Re \[Sigma]"}]
+```
+
+<p align="center"><img src="Documentation/readme_kubo.png" width="420" alt="The real part of the optical conductivity of the Rice-Mele chain against the frequency: two peaks at the edges of the interband transitions, near 1.2 and 3.3"></p>
 
 **A tensor network.** The norm of a matrix-product state of four sites, the state above and its conjugate below:
 
