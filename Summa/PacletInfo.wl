@@ -6,5 +6,5 @@ PacletObject[<|
   "Creator" -> "Nazzareno Africani",
   "License" -> "GPL-3.0-or-later",
   "Keywords" -> {"einsum", "Einstein summation", "tensor contraction", "tensor networks", "contraction order", "BLAS", "hyperedges"},
-  "Extensions" -> {{"Kernel", "Root" -> "Kernel", "Context" -> {"Summa`"}}}
+  "Extensions" -> {{"Kernel", "Root" -> "Kernel", "Context" -> {"Summa`"}}, {"Asset", "Assets" -> {{"Examples", "Examples.nb"}}}}
 |>]
