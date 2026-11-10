@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+message: "If you use Summa in published work, please cite it as below."
+title: "Summa: fast Einstein summation (einsum) for the Wolfram Language"
+authors:
+  - family-names: Africani
+    given-names: Nazzareno
+    affiliation: "International School for Advanced Studies (SISSA), Trieste"
+version: 1.0.0
+date-released: 2026-11-04
+license: GPL-3.0-or-later
+repository-code: "https://github.com/n4sd4q/Summa"
+keywords:
+  - einsum
+  - Einstein summation
+  - tensor contraction
+  - tensor networks
+  - BLAS

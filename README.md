@@ -149,3 +149,8 @@ Summa/
 - The constants of the cost model for batched steps are reasonable estimates, not calibrated on your machine. A kernel can be forced
   with `"BatchMethod"`.
 
+## License
+
+Released under the [GNU General Public License, version 3 or later](LICENSE), with two additional terms
+([`NOTICE`](NOTICE)): the attribution to the author must be kept, and modified versions must say that they are modified,
+by whom and when. Author: Nazzareno Africani (SISSA). To cite Summa, see [`CITATION.cff`](CITATION.cff).
