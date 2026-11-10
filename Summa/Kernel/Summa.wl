@@ -19,6 +19,27 @@
 
 BeginPackage["Summa`"];
 
+(* $SummaUpdateCheck keeps its setting: the package's own when the package is loaded again, or that of the symbol made
+   by typing the name before the package was first loaded (a symbol of Global` or of another context), which is removed
+   before the package's symbol is made, so that neither shadows the other. The symbols are named by strings, since a name
+   in this code would make the package's symbol at once *)
+With[{Summa`Private`others = Select[Names["*`$SummaUpdateCheck"], StringContainsQ[#, "`"] && ! StringStartsQ[#, "Summa`"] &]},
+  With[{Summa`Private`setting = Join @@ (If[ToExpression[#, InputForm, ValueQ], {ToExpression[#]}, {}] &) /@ Summa`Private`others},
+   Scan[Quiet[Remove[#]] &, Summa`Private`others];
+   If[Summa`Private`setting =!= {} && ! ToExpression["Summa`$SummaUpdateCheck", InputForm, ValueQ],
+    ToExpression["Summa`$SummaUpdateCheck = " <> ToString[Last[Summa`Private`setting], InputForm]]]]];
+
+$SummaVersion::usage = "$SummaVersion is the version of Summa.";
+SummaUpdateCheck::usage = "SummaUpdateCheck[] asks GitHub (api.github.com) for the latest release of Summa and gives \
+<|\"InstalledVersion\" -> ..., \"LatestVersion\" -> ..., \"InstallLine\" -> ...|>, the version loaded, the latest release and the \
+PacletInstall line of its paclet; when the latest release is newer, it also prints that line. It gives $Failed, with a message, when \
+the release cannot be read. Loading Summa in a notebook does the same check by itself, at most once a day (see $SummaUpdateCheck).";
+$SummaUpdateCheck::usage = "$SummaUpdateCheck is True (the default) when loading Summa in a notebook checks for a newer \
+release: at most once a day, in the background, it asks GitHub (api.github.com) for the latest release and, if it is newer than \
+$SummaVersion, adds to the banner the PacletInstall line of that release; any failure is silent, and scripts never check. Set \
+$SummaUpdateCheck = False before Needs[\"Summa`\"] (in init.m to turn it off for good) to load without it. \
+SummaUpdateCheck[] checks by hand.";
+
 Summa`Einsum::usage =
 "Einsum[\"spec\", t1, t2, \[Ellipsis]] evaluates the Einstein summation described by the numpy-style string spec, e.g. \"ij,jk->ik\", \"bij,bjk->bik\", \"ijk,ijk,ijk->\", \"ii->i\", \"...ij,...jk->...ik\". Without \"->\" the output contains the indices appearing exactly once, in alphabetical order.
 Einsum[{{i,j},{j,k}} -> {i,k}, t1, t2] uses arbitrary expressions as index labels.
@@ -41,6 +62,8 @@ Summa`EinsumClearCache::usage =
 "EinsumClearCache[] empties the cache of contraction plans used by Einsum.";
 
 Begin["`Private`"];
+
+$SummaVersion = "1.0.0";
 
 (* ::Section:: *)
 (* Messages and error handling *)
@@ -1151,6 +1174,145 @@ EinsumFunction /: MakeBoxes[ef : EinsumFunction[a_Association], fmt_] /; KeyExis
        {BoxForm`SummaryItem[{"Largest intermediate: ", fmtNum[p["LargestIntermediate"]]}]},
        {BoxForm`SummaryItem[{"Path (" <> p["Method"] <> "): ", ssaToLinear[p["SSA"], Length[p["Inputs"]]]}]}},
       fmt, "Interpretable" -> Automatic]];
+
+(* ========================================================================================== *)
+(*  11. The banner and the update check                                                       *)
+(* ========================================================================================== *)
+
+(* the banner shown when the package is loaded in a notebook (as FunctionalDiagrams and FermiWick do): the logo (the small
+   badge of Logo/Summa_logo_small.svg, on the gradient of the package, y upwards), the attribution
+   "Summa, by Nazzareno Africani" word for word (term (b) of NOTICE), the version, license, how to cite, with links to
+   the repository and the website; printed by the end of this file only when $Notebooks *)
+$suStart = RGBColor[91/255, 24/255, 70/255]; $suEnd = RGBColor[194/255, 71/255, 30/255];
+$suAccent = RGBColor[142/255, 48/255, 50/255]; $suTint = RGBColor[255/255, 203/255, 164/255];
+(* a colour for light notebooks and one for dark notebooks (LightDarkSwitched, Mathematica 14.3 or later) *)
+lightDarkColor[light_, dark_] := If[Names["System`LightDarkSwitched"] =!= {}, Symbol["LightDarkSwitched"][light, dark], light];
+badgePoints[] := With[{r = 28.}, Join @@ MapThread[Function[{c, a0}, Table[c + r {Cos[a], Sin[a]}, {a, a0, a0 + Pi/2, Pi/16}]],
+     {{{128 - r, r}, {128 - r, 128 - r}, {r, 128 - r}, {r, r}}, {-Pi/2, 0, Pi/2, Pi}}]];
+(* the sigma of a sum as a tensor network: five tensors joined by bonds, the bond being contracted in the tint *)
+packageLogo[size_: 30] := Module[{pts = badgePoints[], v = {{94, 98}, {36, 98}, {66, 64}, {36, 30}, {94, 30}}},
+   Graphics[{
+     Polygon[pts, VertexColors -> (Blend[{$suStart, $suEnd}, (#[[1]] + 128 - #[[2]])/256] & /@ pts)],
+     {EdgeForm[{White, Opacity[0.16], Thickness[2/128]}], FaceForm[None], Polygon[badgePoints[]]},
+     CapForm["Round"], Thickness[10/128], White, Line[{v[[1]], v[[2]]}], Line[{v[[3]], v[[4]], v[[5]]}],
+     $suTint, Line[{v[[2]], v[[3]]}], White, Disk[#, 10] & /@ v},
+    PlotRange -> {{0, 128}, {0, 128}}, PlotRangePadding -> None, ImagePadding -> None, ImageSize -> size,
+    BaselinePosition -> Scaled[0.2]]];
+$repositoryURL = "https://github.com/n4sd4q/Summa";
+$websiteURL = "https://n4sd4q.github.io/Summa/";
+(* the name in the accent of the logo (its tint in a dark notebook), the rest in grey; U+2010 (a hyphen, not a minus
+   sign), U+00B7 and U+00A0 by character code, so that the file stays plain ASCII. Each group is unbreakable and ends with
+   its separator, so that in a narrow window the lines wrap after a separator, never before one *)
+bannerDot[] := With[{nbsp = FromCharacterCode[160]}, nbsp <> nbsp <> FromCharacterCode[183] <> nbsp <> " "];
+bannerGroup[items__] := Style[Row[{items}], LineBreakWithin -> False];
+bannerAccent[] := lightDarkColor[$suAccent, $suTint];
+bannerGrey[] := lightDarkColor[GrayLevel[0.45], GrayLevel[0.6]];
+loadBanner[release_ : None] :=
+  Module[{dot = bannerDot[], group = bannerGroup, accent = bannerAccent[], grey = bannerGrey[], file = $repositoryURL <> "/blob/main/"},
+   Style[Grid[{{packageLogo[30],
+       Column[{
+         Row[{group[Style["Summa", Bold, 14, accent], Style[", by Nazzareno Africani", 14, accent], Style[dot, 12, grey]],
+           Style["fast Einstein summation", 12, grey]}],
+         Style[Row[{group["version " <> $SummaVersion, dot],
+             group[StringReplace["GPL-3.0-or-later", "-" -> FromCharacterCode[8208]], dot],
+             group["please cite it: ", Hyperlink["CITATION.cff", file <> "CITATION.cff"], dot],
+             group[Hyperlink["GitHub", $repositoryURL], dot],
+             Hyperlink["Website", $websiteURL]}], 11, grey],
+         If[AssociationQ[release], updateNotice[release], Nothing]},
+        Spacings -> 0.1]}},
+      Alignment -> {Left, Center}, Spacings -> {0.7, 0}], FontFamily -> "Source Sans Pro", LineIndent -> 0]];
+
+(* the update check. In a notebook (never in a script), at most once a day, the package asks GitHub for its latest release
+   in the background (URLSubmit: loading never waits for the network) and, if it is newer than the version loaded, the
+   banner gets a third line with the PacletInstall line of its paclet. Any failure (offline, a proxy, a time limit, the rate
+   limit of GitHub, an answer without the fields) is silent. The handler of the answer runs after the evaluation that
+   loaded the package: it writes the banner again in its own cell, found by a tag given to it at load, without moving the
+   selection. SummaUpdateCheck[] asks by hand, and waits for the answer *)
+$latestReleaseURL = "https://api.github.com/repos/n4sd4q/Summa/releases/latest";
+latestReleaseRequest[] := HTTPRequest[$latestReleaseURL, <|"Headers" -> {"Accept" -> "application/vnd.github+json"}|>];
+$updateCheckDirectory := FileNameJoin[{$UserBaseDirectory, "ApplicationData", "Summa"}];
+updateCheckDate[] := DateString[{"Year", "-", "Month", "-", "Day"}];
+networkOptions[f_, opts_List] := FilterRules[opts, Options[f]];
+
+(* the numbers of a version "0.10.0" or of a tag "v0.10.0"; $Failed for anything else (a pre-release "v0.3.0-rc1") *)
+versionNumbers[s_String] := If[StringMatchQ[s, RegularExpression["v?[0-9]+\\.[0-9]+\\.[0-9]+"]],
+   FromDigits /@ StringSplit[StringReplace[s, StartOfString ~~ "v" -> ""], "."], $Failed];
+versionNumbers[_] := $Failed;
+(* whether version a is newer than version b, number by number (0.10.0 is newer than 0.9.0) *)
+newerVersionQ[a_, b_] := With[{x = versionNumbers[a], y = versionNumbers[b]}, ListQ[x] && ListQ[y] && Order[y, x] === 1];
+
+(* the latest release in the answer of GitHub (JSON): <|"Version" -> "0.2.0", "Paclet" -> url of its .paclet, "Page" -> url
+   of its page|>, or $Failed for a draft or a pre-release, a malformed tag or no paclet of this repository. ImportString
+   reads bytes: the text is encoded in UTF-8 first. The paclet's address must be one of this repository's downloads, made
+   of plain characters, since it is shown inside a line of code to copy *)
+latestReleaseOf[body_String] := Module[{json, tag, version, paclets},
+   json = Quiet[ImportString[FromCharacterCode[ToCharacterCode[body, "UTF8"]], "RawJSON"]];
+   If[! AssociationQ[json], Return[$Failed]];
+   tag = Lookup[json, "tag_name"];
+   If[TrueQ[Lookup[json, "draft"]] || TrueQ[Lookup[json, "prerelease"]] || ! ListQ[versionNumbers[tag]], Return[$Failed]];
+   version = StringReplace[tag, StartOfString ~~ "v" -> ""];
+   paclets = Cases[Lookup[json, "assets", {}], KeyValuePattern["browser_download_url" -> url_String] /;
+       StringMatchQ[url, RegularExpression[StringReplace[$repositoryURL, "." -> "\\."] <> "/releases/download/" <>
+          StringReplace[tag, "." -> "\\."] <> "/[A-Za-z0-9._-]+\\.paclet"]] :> url];
+   If[paclets === {}, $Failed,
+    <|"Version" -> version, "Paclet" -> First[paclets], "Page" -> $repositoryURL <> "/releases/tag/" <> tag|>]];
+latestReleaseOf[_] := $Failed;
+installLine[release_Association] := "PacletInstall[\"" <> release["Paclet"] <> "\"]";
+
+(* the third line of the banner: the newer version, a link to its page and the line that installs it, as code to copy *)
+updateNotice[release_Association] := With[{dot = bannerDot[], group = bannerGroup},
+   Style[Row[{group[Style["version " <> release["Version"] <> " is available", Bold, bannerAccent[]], dot],
+      group[Hyperlink["what is new", release["Page"]], dot],
+      With[{url = release["Paclet"]}, Style[Defer[PacletInstall[url]], ShowStringCharacters -> True,
+        PrivateFontOptions -> {"OperatorSubstitution" -> False}]]}], 11, bannerGrey[]]];
+updateNoticeText[release_Association] :=
+  "Summa " <> release["Version"] <> " is available (" <> $SummaVersion <> " is loaded): " <> installLine[release];
+
+(* whether the check at load is due today: the file LastUpdateCheck.txt of dir holds the date of the last check; the date of
+   today is written into it before asking. Any error reading or writing it: the check is due *)
+updateCheckDueQ[dir_String, today_String] := Module[{file = FileNameJoin[{dir, "LastUpdateCheck.txt"}], last, stream},
+   last = Quiet[ReadString[file]];
+   If[StringQ[last] && StringTrim[last] === today, Return[False]];
+   Quiet[If[! DirectoryQ[dir], CreateDirectory[dir, CreateIntermediateDirectories -> True]];
+    stream = OpenWrite[file];
+    If[Head[stream] === OutputStream, WriteString[stream, today <> "\n"]; Close[stream]]];
+   True];
+
+$updateCheckTask = None;
+submitUpdateCheck[nb_, tag_String] := Quiet[
+   $updateCheckTask = URLSubmit[latestReleaseRequest[],
+     HandlerFunctions -> <|"TaskFinished" -> (showUpdateNotice[nb, tag, #] &)|>,
+     HandlerFunctionsKeys -> {"StatusCode", "Body"}, Sequence @@ networkOptions[URLSubmit, {TimeConstraint -> 30}]]];
+showUpdateNotice[nb_, tag_String, answer_] := Quiet[Module[{release, cells},
+    release = If[Lookup[answer, "StatusCode"] === 200, latestReleaseOf[Lookup[answer, "Body"]], $Failed];
+    If[AssociationQ[release] && newerVersionQ[release["Version"], $SummaVersion],
+     cells = Cells[nb, CellTags -> tag];
+     If[ListQ[cells] && Length[cells] == 1,
+      NotebookWrite[First[cells], ReplacePart[NotebookRead[First[cells]], 1 -> BoxData[ToBoxes[loadBanner[release]]]]]]]]];
+
+SummaUpdateCheck::latest = "The latest release could not be read from GitHub (`1`).";
+SummaUpdateCheck[] := Module[{response, status, release},
+   response = Quiet[URLRead[latestReleaseRequest[], Sequence @@ networkOptions[URLRead, {TimeConstraint -> 10}]]];
+   status = If[Head[response] === HTTPResponse, response["StatusCode"], None];
+   release = If[status === 200, latestReleaseOf[response["Body"]], $Failed];
+   If[! AssociationQ[release],
+    Message[SummaUpdateCheck::latest, Which[status === None, "no answer", status =!= 200, "status " <> ToString[status],
+       True, "no release with a paclet in the answer"]];
+    $Failed,
+    If[newerVersionQ[release["Version"], $SummaVersion],
+     Print[If[TrueQ[$Notebooks], Style[updateNotice[release], FontFamily -> "Source Sans Pro"], updateNoticeText[release]]]];
+    <|"InstalledVersion" -> $SummaVersion, "LatestVersion" -> release["Version"], "InstallLine" -> installLine[release]|>]];
+
+(* the check at load is on unless $SummaUpdateCheck was set before loading (kept by the start of the package) *)
+If[! ValueQ[$SummaUpdateCheck], $SummaUpdateCheck = True];
+
+(* in a notebook (not in scripts, which stay quiet), the banner, and the update check when it is due *)
+If[TrueQ[$Notebooks],
+  If[$SummaUpdateCheck =!= False && $AllowInternet =!= False && updateCheckDueQ[$updateCheckDirectory, updateCheckDate[]],
+   With[{tag = "SummaBanner" <> ToString[Round[10^6 AbsoluteTime[]]]},
+    CellPrint[ExpressionCell[loadBanner[], "Print", CellTags -> tag]];
+    submitUpdateCheck[EvaluationNotebook[], tag]],
+   Print[loadBanner[]]]];
 
 End[];
 

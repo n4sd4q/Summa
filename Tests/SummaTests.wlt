@@ -2,9 +2,9 @@
 (* Test suite for the Summa` package.  Run with:   TestReport["/path/to/Summa/Tests/SummaTests.wlt"]
    Expected values of the data-driven tests were computed with numpy.einsum (exact integer arithmetic). *)
 
-If[!MemberQ[$Packages, "Summa`"],
-  Quiet[Check[Needs["Summa`"],
-    Get[FileNameJoin[{DirectoryName[$TestFileName], "..", "Kernel", "Summa.wl"}]]]]];
+testDir = DirectoryName[$TestFileName]; root = ParentDirectory[testDir];
+PacletDirectoryLoad[FileNameJoin[{root, "Summa"}]];   (* the paclet of this repository, not an installed one *)
+Needs["Summa`"];
 
 (* brute-force reference: explicit sum over all index assignments (string specs, no ellipsis) *)
 refEinsum[spec_String, ts___] := Module[{tensors = {ts}, str, pos, lhs, rhs, cpos, terms, all, out, labs, dimOf, sumLabs, sumTuples, elem},
@@ -736,3 +736,50 @@ VerificationTest[With[{opts = {"ShowPath" -> True}}, Head[EinsumDiagram["ij,jk,k
 VerificationTest[Module[{n0 = Length[Names["Summa`Private`ms$*"]]}, Do[EinsumPath["ij,jk,kl,lm->im", {{2, 3}, {3, 4}, {4, 5}, {5, 6}}], {20}]; Length[Names["Summa`Private`ms$*"]] - n0], 0, TestID -> "no-temporary-leak"]
 VerificationTest[Developer`PackedArrayQ[Einsum["bij,bjk->bik", RandomReal[1, {500, 3, 4}], RandomReal[1, {500, 4, 5}], "BatchMethod" -> "Vectorized"]], True, TestID -> "packed-vec-table"]
 
+(* ---------------------------------------------------------------- the banner and the update check, without the network *)
+(* the answer of GitHub read from a saved one (LatestRelease.json, a release 0.9.0 made up in the form of GitHub's answer; its text is UTF-8); the line
+   of a newer release (the next patch of the version loaded); the once-a-day rule in a temporary directory; loading in a
+   script, which never checks; the setting typed before the package is loaded *)
+VerificationTest[Summa`Private`newerVersionQ @@@ {{"0.10.0", "0.9.0"}, {"0.9.0", "0.10.0"}, {"v0.9.0", "0.9.0"}, {"1.0.0", "0.99.99"},
+    {"0.9.1", "0.9.0"}, {"v0.3.0-rc1", "0.9.0"}, {"0.3", "0.9.0"}, {"version 0.3.0", "0.9.0"}},
+  {True, False, False, True, True, False, False, False}, TestID -> "update check: versions compared number by number"]
+latestAnswer = FromCharacterCode[BinaryReadList[FileNameJoin[{testDir, "LatestRelease.json"}]], "UTF-8"];
+latestRelease = <|"Version" -> "0.9.0", "Paclet" -> "https://github.com/n4sd4q/Summa/releases/download/v0.9.0/Summa-0.9.0.paclet",
+   "Page" -> "https://github.com/n4sd4q/Summa/releases/tag/v0.9.0"|>;
+VerificationTest[{Max[ToCharacterCode[latestAnswer]] > 127, Summa`Private`latestReleaseOf[latestAnswer]},
+  {True, latestRelease}, TestID -> "update check: the latest release read from an answer of GitHub (text beyond ASCII)"]
+VerificationTest[Summa`Private`latestReleaseOf /@ {
+    StringReplace[latestAnswer, "\"draft\": false" -> "\"draft\": true"],
+    StringReplace[latestAnswer, "\"prerelease\": false" -> "\"prerelease\": true"],
+    StringReplace[latestAnswer, "\"tag_name\": \"v0.9.0\"" -> "\"tag_name\": \"v0.3.0-rc1\""],
+    StringReplace[latestAnswer, "github.com/n4sd4q/Summa/releases/download" -> "example.com/releases/download"],
+    StringReplace[latestAnswer, "/Summa-0.9.0.paclet\"" -> "/a\\\"]; Quit[]; (\\\".paclet\""],
+    "{\"message\": \"API rate limit exceeded\", \"documentation_url\": \"https://docs.github.com/rest\"}", "<html>offline</html>", $Failed},
+  ConstantArray[$Failed, 8], TestID -> "update check: no release for a draft, a pre-release, a malformed tag, a paclet elsewhere or with a quote, an error"]
+nextVersion = StringRiffle[ToString /@ (Summa`Private`versionNumbers[$SummaVersion] + {0, 0, 1}), "."];
+newerRelease = Summa`Private`latestReleaseOf[StringReplace[latestAnswer, "0.9.0" -> nextVersion]];
+VerificationTest[With[{paclet = "https://github.com/n4sd4q/Summa/releases/download/v" <> nextVersion <> "/Summa-" <> nextVersion <> ".paclet"},
+   {Summa`Private`newerVersionQ[newerRelease["Version"], $SummaVersion],
+    Summa`Private`newerVersionQ[latestRelease["Version"], $SummaVersion],
+    Cases[Summa`Private`loadBanner[], Column[lines_List, ___] :> Length[lines], Infinity],
+    Cases[Summa`Private`loadBanner[newerRelease], Column[lines_List, ___] :> Length[lines], Infinity],
+    Cases[Summa`Private`updateNotice[newerRelease], Hyperlink[_, url_] :> url, Infinity] === {"https://github.com/n4sd4q/Summa/releases/tag/v" <> nextVersion},
+    Cases[Summa`Private`updateNotice[newerRelease], Defer[e_] :> HoldForm[e], Infinity] === {HoldForm[PacletInstall[paclet]]},
+    Summa`Private`updateNoticeText[newerRelease] === "Summa " <> nextVersion <> " is available (" <> $SummaVersion <>
+      " is loaded): PacletInstall[\"" <> paclet <> "\"]"}],
+  {True, False, {2}, {3}, True, True, True}, TestID -> "update check: the line of a newer release under the banner, and as text"]
+VerificationTest[Module[{dir = CreateDirectory[], r},
+   r = {Summa`Private`updateCheckDueQ[FileNameJoin[{dir, "a"}], "2026-11-10"], Summa`Private`updateCheckDueQ[FileNameJoin[{dir, "a"}], "2026-11-10"],
+     Summa`Private`updateCheckDueQ[FileNameJoin[{dir, "a"}], "2026-11-11"], StringTrim[ReadString[FileNameJoin[{dir, "a", "LastUpdateCheck.txt"}]]],
+     Quiet[Summa`Private`updateCheckDueQ[FileNameJoin[{dir, "a", "LastUpdateCheck.txt", "b"}], "2026-11-10"]]};
+   DeleteDirectory[dir, DeleteContents -> True]; r],
+  {True, False, True, "2026-11-11", True}, TestID -> "update check: at most once a day; a date that cannot be kept means a check"]
+(* in fresh kernels (scripts): loading prints nothing and asks nothing; $SummaUpdateCheck = False typed before loading is the
+   package's setting and the symbol typed is removed; loading again keeps the setting *)
+freshKernel[code_String] := Module[{file = FileNameJoin[{$TemporaryDirectory, "summa_check_" <> ToString[RandomInteger[10^9]] <> ".wl"}], out},
+   Export[file, "PacletDirectoryLoad[" <> ToString[FileNameJoin[{root, "Summa"}], InputForm] <> "];\n" <> code, "Text"];
+   out = RunProcess[{First[$CommandLine], "-script", file}, "StandardOutput"]; DeleteFile[file]; StringTrim[out]];
+VerificationTest[{freshKernel["Needs[\"Summa`\"];"],
+   freshKernel["$SummaUpdateCheck = False;\nNeeds[\"Summa`\"];\nPrint[ToString[{Summa`$SummaUpdateCheck, Names[\"Global`$SummaUpdateCheck\"]}, InputForm]];"],
+   freshKernel["Needs[\"Summa`\"];\n$SummaUpdateCheck = False;\nGet[\"Summa`\"];\nPrint[ToString[$SummaUpdateCheck, InputForm]];"]},
+  {"", "{False, {}}", "False"}, TestID -> "update check: a script loads the package printing nothing; the setting typed before loading is kept"]

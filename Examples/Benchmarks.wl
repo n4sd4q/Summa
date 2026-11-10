@@ -6,7 +6,7 @@
    Mathematica equivalent, and checks that the results agree. *)
 
 If[!MemberQ[$Packages, "Summa`"],
-  Get[FileNameJoin[{DirectoryName[$InputFileName], "..", "Kernel", "Summa.wl"}]]];
+  (PacletDirectoryLoad[FileNameJoin[{DirectoryName[$InputFileName], "..", "Summa"}]]; Needs["Summa`"])];
 
 SetAttributes[time, HoldAll];
 time[expr_] := First[RepeatedTiming[expr;]];
