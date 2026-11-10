@@ -1,0 +1,186 @@
+{
+ "FunctionalDiagrams": [
+  {
+   "label": "Navy (today)",
+   "start": "#1F4E79",
+   "end": "#1F4E79",
+   "accent": "#1F4E79",
+   "tint": "#9FC5E8",
+   "idea": "the present colour, flat",
+   "white_contrast": 8.66,
+   "tint_on_dark": 10.27
+  },
+  {
+   "label": "Navy, deepened",
+   "start": "#163A5E",
+   "end": "#2B6699",
+   "accent": "#20507C",
+   "tint": "#9FC5E8",
+   "idea": "the same hue, a gradient from ink to the present navy",
+   "white_contrast": 6.06,
+   "tint_on_dark": 10.27
+  },
+  {
+   "label": "Ocean",
+   "start": "#173B6C",
+   "end": "#18758F",
+   "accent": "#18587E",
+   "tint": "#98D8E4",
+   "idea": "navy towards teal: cooler, more luminous",
+   "white_contrast": 5.28,
+   "tint_on_dark": 11.73
+  },
+  {
+   "label": "Indigo",
+   "start": "#232F75",
+   "end": "#465DBF",
+   "accent": "#35469A",
+   "tint": "#B8C6F6",
+   "idea": "a bluer, more saturated ink",
+   "white_contrast": 5.87,
+   "tint_on_dark": 10.99
+  },
+  {
+   "label": "Petrol",
+   "start": "#0D4652",
+   "end": "#187A77",
+   "accent": "#126065",
+   "tint": "#A2E0D6",
+   "idea": "blue-green, far from the magenta of FermiWick",
+   "white_contrast": 5.14,
+   "tint_on_dark": 12.52
+  },
+  {
+   "label": "Dusk",
+   "start": "#1C3772",
+   "end": "#4A3A98",
+   "accent": "#333885",
+   "tint": "#C2B8F2",
+   "idea": "blue to violet, the neighbour of FermiWick's colour",
+   "white_contrast": 8.94,
+   "tint_on_dark": 10.1
+  }
+ ],
+ "FermiWick": [
+  {
+   "label": "Plum (today)",
+   "start": "#8E2A7B",
+   "end": "#8E2A7B",
+   "accent": "#8E2A7B",
+   "tint": "#F0A6D6",
+   "idea": "the present colour, flat",
+   "white_contrast": 7.59,
+   "tint_on_dark": 9.83
+  },
+  {
+   "label": "Plum, deepened",
+   "start": "#5C2276",
+   "end": "#9C2A7F",
+   "accent": "#7C267A",
+   "tint": "#F2B0DA",
+   "idea": "violet to the present plum",
+   "white_contrast": 6.88,
+   "tint_on_dark": 10.6
+  },
+  {
+   "label": "Orchid",
+   "start": "#642A8C",
+   "end": "#B02573",
+   "accent": "#8A2880",
+   "tint": "#F7B5DA",
+   "idea": "the gradient of the present logo, darkened for white text",
+   "white_contrast": 6.25,
+   "tint_on_dark": 11.11
+  }
+ ],
+ "Hub": [
+  {
+   "label": "Graphite and amber",
+   "start": "#1F2630",
+   "end": "#3B4656",
+   "accent": "#2D3643",
+   "tint": "#F6B73C",
+   "idea": "neutral graphite, the colour in the tint: the packages bring the colour",
+   "white_contrast": 9.56,
+   "tint_on_dark": 10.39
+  },
+  {
+   "label": "Graphite",
+   "start": "#1F2630",
+   "end": "#3A4757",
+   "accent": "#2C3744",
+   "tint": "#C9D3DF",
+   "idea": "neutral: the packages bring the colour",
+   "white_contrast": 9.46,
+   "tint_on_dark": 12.25
+  },
+  {
+   "label": "Family",
+   "start": "#173B6C",
+   "end": "#B02573",
+   "accent": "#643070",
+   "tint": "#E3C8EC",
+   "idea": "from FunctionalDiagrams to FermiWick (Ocean to Orchid)",
+   "white_contrast": 6.25,
+   "tint_on_dark": 12.14
+  },
+  {
+   "label": "Family, navy",
+   "start": "#1F4E79",
+   "end": "#B02573",
+   "accent": "#683A76",
+   "tint": "#E3C8EC",
+   "idea": "from FunctionalDiagrams to FermiWick (Navy to Orchid)",
+   "white_contrast": 6.25,
+   "tint_on_dark": 12.14
+  }
+ ],
+ "Summa": [
+  {
+   "label": "Sunset",
+   "start": "#5B1846",
+   "end": "#C2471E",
+   "accent": "#8E3032",
+   "tint": "#FFCBA4",
+   "idea": "plum to orange, a two-hue gradient as FermiWick's",
+   "white_contrast": 4.98,
+   "tint_on_dark": 12.66
+  },
+  {
+   "label": "Forest",
+   "start": "#1A4E31",
+   "end": "#2E7B48",
+   "accent": "#24653C",
+   "tint": "#A9E2BD",
+   "idea": "green: far from the other three on the colour wheel",
+   "white_contrast": 5.19,
+   "tint_on_dark": 12.63
+  },
+  {
+   "label": "Gold",
+   "start": "#5E470B",
+   "end": "#8E6B12",
+   "accent": "#76590E",
+   "tint": "#F0D58C",
+   "idea": "dark gold, warm like a ledger",
+   "white_contrast": 4.93,
+   "tint_on_dark": 12.9
+  },
+  {
+   "label": "Slate",
+   "start": "#2C3A55",
+   "end": "#4C6289",
+   "accent": "#3C4E6F",
+   "tint": "#C5D2EC",
+   "idea": "a grey blue, quiet",
+   "white_contrast": 6.15,
+   "tint_on_dark": 12.19
+  }
+ ],
+ "chosen": {
+  "FunctionalDiagrams": "Ocean",
+  "FermiWick": "Orchid",
+  "Hub": "Graphite and amber",
+  "Summa": "Sunset"
+ }
+}

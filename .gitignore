@@ -1,3 +1,10 @@
 *.mx
 .DS_Store
 *.swp
+Internal/
+build/
+*.aux
+*.log
+*.out
+*.toc
+__pycache__/

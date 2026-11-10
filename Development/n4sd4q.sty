@@ -1,0 +1,134 @@
+% n4sd4q.sty -- the common style of the manuals and showcases of the packages (FunctionalDiagrams, FermiWick, ...).
+%
+%   \usepackage{n4sd4q}
+%   \familysetup{package=FermiWick, document=Reference manual, logo=../Logo/FermiWick_logo_white.pdf}
+%   \familysetup{colours={Plum, deepened}}          % another option of design/palette.json (default: the chosen one)
+%   \familykeywords{NormalOrder, WickVEV, ...}     % the names of the package, highlighted in the code
+%   ...
+%   \begin{document}
+%   \familytitle{Reference manual}{every function, option and convention}{version 0.3.0 \textperiodcentered{} November 2026}
+%
+% It holds what the documents of the packages share: fonts (Palatino, Helvetica, txtt), page, colours from the palette of
+% the family (the accent of the package, its gradient and its light tint; the tints of the boxes derived from the accent),
+% headings, running heads, the Wolfram Language listings, the boxes of code and of output, the title band. What is particular
+% to a document (its examples machinery, its diagrams) stays in the document.
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{n4sd4q}[2026/11/10 common style of the manuals and showcases]
+
+\RequirePackage{kvoptions}
+\SetupKeyvalOptions{family=fam, prefix=fam@}
+\DeclareStringOption[Package]{package}
+\DeclareStringOption[Reference manual]{document}
+\DeclareStringOption{colours}
+\DeclareStringOption{logo}
+\DeclareStringOption[Nazzareno Africani]{author}
+\ProcessKeyvalOptions*
+\newcommand{\familysetup}[1]{\setkeys{fam}{#1}}
+
+\RequirePackage[T1]{fontenc}
+\RequirePackage[sc]{mathpazo}
+\RequirePackage[scaled=0.88]{helvet}
+\renewcommand{\ttdefault}{txtt}
+\RequirePackage{amsmath,amssymb,bm}
+\allowdisplaybreaks[2]
+\RequirePackage[a4paper,margin=2.2cm,top=2.4cm,bottom=2.4cm,headheight=23pt]{geometry}
+\RequirePackage{microtype}
+\RequirePackage[dvipsnames]{xcolor}
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+\RequirePackage{listings}
+\RequirePackage[most]{tcolorbox}
+\RequirePackage{booktabs,array,tabularx}
+\RequirePackage{titlesec}
+\RequirePackage{enumitem}
+\RequirePackage{fancyhdr}
+\RequirePackage{needspace}
+\RequirePackage{etoolbox}
+\RequirePackage[colorlinks=true,linkcolor=accent,urlcolor=accent,citecolor=accent]{hyperref}
+
+% ------------------------------------------------------------------------------------------------ colours
+% \familypreset{package}{label}{start}{end}{accent}{tint}, written by design/palette.py into n4sd4q-palette.tex
+\newcommand{\familypreset}[6]{\csdef{fam@preset@#1@#2}{{#3}{#4}{#5}{#6}}}
+\newcommand{\familychosen}[2]{\csdef{fam@chosen@#1}{#2}}
+\input{n4sd4q-palette.tex}
+\newcommand{\fam@take}[4]{\definecolor{accentstart}{HTML}{#1}\definecolor{accentend}{HTML}{#2}\definecolor{accent}{HTML}{#3}%
+  \definecolor{accenttint}{HTML}{#4}}
+% the option of the palette: "colours" if given (by \familysetup too), else the chosen one of the package; a package without
+% presets is graphite
+\newcommand{\fam@usecolours}{%
+  \ifdefempty{\fam@colours}
+    {\ifcsdef{fam@chosen@\fam@package}{\letcs{\fam@label}{fam@chosen@\fam@package}}{\def\fam@label{}}}
+    {\let\fam@label\fam@colours}%
+  \ifcsdef{fam@preset@\fam@package @\fam@label}
+    {\expandafter\expandafter\expandafter\fam@take\csname fam@preset@\fam@package @\fam@label\endcsname}
+    {\fam@take{2B3440}{2B3440}{2B3440}{C9D3DF}}}
+\fam@take{2B3440}{2B3440}{2B3440}{C9D3DF}
+\definecolor{checkgreen}{HTML}{2E7D32}
+\definecolor{fam@grey}{HTML}{8A8A8A}
+\AtEndPreamble{%
+  \fam@usecolours
+  \colorlet{accentlight}{accent!15!white}\colorlet{accentpale}{accent!7!white}\colorlet{codebg}{accent!4!white}
+  \colorlet{codeframe}{accent!25!white}\colorlet{keyword}{accent}\colorlet{comment}{accent!30!fam@grey}
+  \hypersetup{pdftitle={\fam@package: \fam@document}, pdfauthor={\fam@author}}}
+
+% ------------------------------------------------------------------------------------------------ text and headings
+\titleformat{\section}{\sffamily\Large\bfseries\color{accent}}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\sffamily\large\bfseries\color{accent}}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\sffamily\normalsize\bfseries\color{accent}}{\thesubsubsection}{0.6em}{}
+\titleformat{\paragraph}[runin]{\sffamily\bfseries\color{accent}}{}{0pt}{}[.]
+\titlespacing*{\section}{0pt}{2.6ex plus 1ex minus 0.4ex}{1.2ex}
+\titlespacing*{\subsection}{0pt}{2.2ex plus 0.6ex minus 0.3ex}{0.8ex}
+\titlespacing*{\subsubsection}{0pt}{1.8ex plus 0.5ex minus 0.3ex}{0.6ex}
+\titlespacing*{\paragraph}{0pt}{1.2ex plus 0.4ex}{0.6em}
+\pretocmd{\section}{\needspace{8\baselineskip}}{}{}
+\setcounter{tocdepth}{2}
+\setlist{itemsep=1pt, topsep=3pt}
+\setlength{\emergencystretch}{1.5em}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt plus 1.5pt minus 1pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\small\color{accent}\fam@package\ \textperiodcentered{} \MakeLowercase{\fam@document}}
+\fancyhead[R]{\sffamily\small\color{comment}\nouppercase{\rightmark}}
+\fancyfoot[C]{\sffamily\small\thepage}
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\enspace #1}{\thesection\enspace #1}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{codeframe}\leaders\hrule height \headrulewidth\hfill}}
+
+% ------------------------------------------------------------------------------------------------ code
+\lstdefinelanguage{WL}{sensitive=true, morecomment=[n]{(*}{*)}, morestring=[b]"}
+\lstset{language=WL, basicstyle=\ttfamily\small, keywordstyle=\color{keyword}\bfseries, commentstyle=\color{comment}\itshape,
+  stringstyle=\color{BrickRed}, columns=fullflexible, keepspaces=true, breaklines=true, breakatwhitespace=true,
+  breakindent=2em, showstringspaces=false, upquote=true, extendedchars=true}
+% the names of the package, as keywords of the language (the boxes of code set the language again)
+\newcommand{\familykeywords}[1]{\lstdefinelanguage{WL}{sensitive=true, morecomment=[n]{(*}{*)}, morestring=[b]", morekeywords={#1}}}
+\lstdefinestyle{plainoutput}{language={}, basicstyle=\ttfamily\small, breaklines=true, columns=fullflexible, keepspaces=true}
+\newtcblisting{code}{listing only, colback=codebg, colframe=codeframe, boxrule=0.5pt, arc=2pt, left=6pt, right=6pt,
+  top=3pt, bottom=3pt, listing options={language=WL}}
+\newtcolorbox{exoutput}{colback=white, colframe=codeframe, boxrule=0.5pt, arc=2pt, left=24pt, right=6pt, top=3pt, bottom=3pt,
+  before skip=2pt, after skip=8pt, breakable, overlay unbroken and first={\node[anchor=north west,
+  font=\scriptsize\sffamily\color{comment}] at ([xshift=4pt, yshift=-5pt]frame.north west) {out};}}
+\newcommand{\pkg}[1]{\texttt{#1}}
+\newcommand{\fn}[1]{\texttt{\color{accent}#1}}
+\newcommand{\opt}[1]{\texttt{"#1"}}
+\newcommand{\ok}{\textcolor{checkgreen}{\ensuremath{\checkmark}}}
+
+% ------------------------------------------------------------------------------------------------ title
+% a band across the top of the first page, in the gradient of the package, with its name, the document, a line of facts and
+% the white logo on the right
+\newcommand{\familytitle}[3]{%
+  \thispagestyle{empty}%
+  \begin{tikzpicture}[remember picture, overlay]
+    \shade[left color=accentstart, right color=accentend] (current page.north west) rectangle ([yshift=-6.0cm]current page.north east);
+    \node[anchor=north west, text=white, text width=12.2cm, align=left, inner sep=0pt] at ([xshift=2.2cm, yshift=-1.3cm]current page.north west)
+      {{\sffamily\bfseries\fontsize{34}{38}\selectfont \fam@package}\\[12pt]
+       {\sffamily\Large #1}\\[3pt]
+       {\sffamily\large #2}\\[10pt]
+       {\sffamily\normalsize\color{accenttint}\hypersetup{urlcolor=accenttint, linkcolor=accenttint}\fam@author\ \textperiodcentered{} SISSA
+        \textperiodcentered{} #3}};
+    \ifdefempty{\fam@logo}{}{\IfFileExists{\fam@logo}{\node[anchor=north east] at ([xshift=-2.0cm, yshift=-1.2cm]current page.north east)
+      {\includegraphics[height=3.6cm]{\fam@logo}};}{}}
+  \end{tikzpicture}%
+  \vspace*{3.6cm}\par}
+\endinput
