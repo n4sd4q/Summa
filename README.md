@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/n4sd4q/Summa/releases/latest"><img src="https://img.shields.io/github/v/release/n4sd4q/Summa?label=release&color=8E3032" alt="latest release"></a>
-  <img src="https://img.shields.io/badge/Mathematica-11.3%2B-8E3032" alt="Mathematica 11.3 or later">
+  <img src="https://img.shields.io/badge/Mathematica-12.1%2B-8E3032" alt="Mathematica 12.1 or later">
   <a href="Tests"><img src="https://img.shields.io/badge/tests-735%20passed-2E7D32" alt="735 tests passed"></a>
   <img src="https://img.shields.io/badge/license-GPL--3.0--or--later-8E3032" alt="GNU GPL v3 or later">
 </p>
@@ -182,7 +182,7 @@ and load it in every session:
 Needs["Summa`"]
 ```
 
-There are no dependencies; the package needs Mathematica 11.3 or later. The guided tour, a notebook to run cell by cell,
+There are no dependencies; the package needs Mathematica 12.1 or later. The guided tour, a notebook to run cell by cell,
 comes with the paclet:
 
 ```mathematica

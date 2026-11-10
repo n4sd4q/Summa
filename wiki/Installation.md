@@ -1,6 +1,6 @@
 ## Installing
 
-Summa needs Mathematica 11.3 or later and nothing else. Install the paclet of the latest
+Summa needs Mathematica 12.1 or later and nothing else. Install the paclet of the latest
 [release](https://github.com/n4sd4q/Summa/releases) once:
 
 <!-- not run -->

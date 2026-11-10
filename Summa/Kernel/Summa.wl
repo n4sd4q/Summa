@@ -3,7 +3,7 @@
 (* :Title: Einsum *)
 (* :Context: Summa` *)
 (* :Package Version: 1.0.0 *)
-(* :Mathematica Version: 11.3 *)
+(* :Mathematica Version: 12.1 *)
 (* :Summary:
      Fast Einstein summation (einsum) for the Wolfram Language.
      - numpy-compatible string syntax ("ij,jk->ik", implicit output, "...", Unicode labels)
