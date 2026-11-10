@@ -1,4 +1,19 @@
-# Summa — fast Einstein summation for Mathematica
+<p align="center">
+  <img src="Logo/Summa_logo.svg" width="120" alt="Summa logo: the sigma of a sum drawn as a tensor network, the bond being contracted in the tint">
+</p>
+
+<h1 align="center">Summa</h1>
+
+<p align="center">
+  <b>Fast Einstein summation for the Wolfram Language</b><br>
+  the syntax of numpy.einsum, indices repeated at will, optimal contraction orders, tensor-network diagrams
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Mathematica-11.3%2B-8E3032" alt="Mathematica 11.3 or later">
+  <img src="https://img.shields.io/badge/tests-700%20passed-2E7D32" alt="700 tests passed">
+  <img src="https://img.shields.io/badge/license-GPL--3.0--or--later-8E3032" alt="GNU GPL v3 or later">
+</p>
 
 `Summa` is a Wolfram Language package for contracting tensors with the syntax of `numpy.einsum` (main function: `Einsum`). No
 manual transposes and reshapes. Unlike `ResourceFunction["EinsteinSummation"]`, **an index may appear any number of times**: within
@@ -138,6 +153,7 @@ Summa/
 ├── Examples/SummaDemo.nb     ← demo notebook
 ├── Examples/Benchmarks.wl    ← benchmarks
 ├── Examples/diagram_preview.png
+├── Logo/                     ← the logo: badge, small badge, white drawing
 └── README.md
 ```
 

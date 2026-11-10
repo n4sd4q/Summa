@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128"><title>Summa logo: the sigma of a sum drawn as a tensor network, the bond being contracted in the tint</title>
+<defs><linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="128" y2="128"><stop offset="0" stop-color="#5B1846"/><stop offset="1" stop-color="#C2471E"/></linearGradient><radialGradient id="gl" gradientUnits="userSpaceOnUse" cx="36" cy="20" r="96"><stop offset="0" stop-color="#ffffff" stop-opacity="0.2"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs>
+<rect width="128" height="128" rx="28" fill="url(#g)"/>
+<rect width="128" height="128" rx="28" fill="url(#gl)"/>
+<rect x="1" y="1" width="126" height="126" rx="27" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="2"/>
+<g stroke="#ffffff" stroke-width="10" stroke-linecap="round"><line x1="94" y1="30" x2="36" y2="30"/><line x1="66" y1="64" x2="36" y2="98"/><line x1="36" y1="98" x2="94" y2="98"/></g>
+<line x1="36" y1="30" x2="66" y2="64" stroke="#FFCBA4" stroke-width="10" stroke-linecap="round"/>
+<circle cx="94" cy="30" r="10" fill="#ffffff"/><circle cx="36" cy="30" r="10" fill="#ffffff"/><circle cx="66" cy="64" r="10" fill="#ffffff"/><circle cx="36" cy="98" r="10" fill="#ffffff"/><circle cx="94" cy="98" r="10" fill="#ffffff"/>
+</svg>
