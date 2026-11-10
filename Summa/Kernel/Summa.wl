@@ -1102,7 +1102,7 @@ treeMain[spec_, vals_List, symNames_List, opts_List] := Module[{o, parsed, nop, 
 
 treeGraphics[plan_, tnames_, tcols_, known_, isz_, bg_] := Module[
   {n = Length[plan["Inputs"]], steps = plan["Steps"], s, names = plan["Names"], c, kids, xs, hs, order = {}, dfs,
-   pos, prims = {}, title},
+   pos, prims = {}, title, width},
   s = Length[steps]; c = compactQ[names];
   kids[id_] := steps[[id - n]]["In"];
   dfs[id_] := If[id <= n, AppendTo[order, id], Scan[dfs, kids[id]]];
@@ -1140,7 +1140,14 @@ treeGraphics[plan_, tnames_, tcols_, known_, isz_, bg_] := Module[
       ", speed-up ", fmtRatio[plan["NaiveFlops"]/Max[plan["Flops"], 1.]], ")     largest intermediate ",
       fmtNum[plan["LargestIntermediate"]]}],
     specString[plan]];
-  Graphics[prims, ImageSize -> If[isz === Automatic, Min[860, Max[260, 80 (1.5 n + 0.5)]], isz],
+  (* the title on one line when it fits the width of the tree (about 5.4 points a character at size 10, the costs about
+     75 characters), else the costs on a second line, so that a small tree does not cut its title *)
+  width = If[isz === Automatic, Min[860, Max[260, 80 (1.5 n + 0.5)]], isz];
+  If[known && NumericQ[width] && 5.4 (StringLength[specString[plan]] + 75) + 30 > width,
+   title = Column[{specString[plan], Row[{"flops ", fmtNum[plan["Flops"]], "  (naive ", fmtNum[plan["NaiveFlops"]],
+       ", speed-up ", fmtRatio[plan["NaiveFlops"]/Max[plan["Flops"], 1.]], ")"}],
+      Row[{"largest intermediate ", fmtNum[plan["LargestIntermediate"]]}]}, Alignment -> Center, Spacings -> 0.2]];
+  Graphics[prims, ImageSize -> width,
     Background -> bg, PlotLabel -> Style[title, 10], PlotRangePadding -> Scaled[0.08], AspectRatio -> Automatic]
 ];
 
