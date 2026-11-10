@@ -1,0 +1,2 @@
+Einsum::mismatch: The tensors have dimensions {{4, 2, 5}, {4, 3, 2}}, but the EinsumFunction was compiled for {{4, 3, 2}, {4, 2, 5}}.
+$Failed

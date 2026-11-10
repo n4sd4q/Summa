@@ -1,0 +1,4 @@
+<|"Spec" -> "bij,bjk->bik", "Shapes" -> {{4, 3, 2}, {4, 2, 5}}, 
+ "Path" -> {{1, 2}}, "Method" -> "Trivial", "Flops" -> 120., 
+ "NaiveFlops" -> 120., "Speedup" -> 1., "LargestIntermediate" -> 60., 
+ "Contractions" -> {"bij,bjk->bik"}|>

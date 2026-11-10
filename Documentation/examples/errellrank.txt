@@ -1,0 +1,2 @@
+Einsum::ellrank: Operand 1 has rank 2, smaller than the 3 explicit indices of its subscript.
+$Failed

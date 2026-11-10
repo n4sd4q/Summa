@@ -1,0 +1,1 @@
+EinsumFunction[",ij->ij", {{}, {2, 2}}][Sin[x], m]

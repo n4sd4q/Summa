@@ -1,0 +1,1 @@
+Einsum["i,i,i->", Array[x, 2], Array[y, 2], Array[z, 2]]

@@ -1,0 +1,4 @@
+<|"Spec" -> "ij,jk,kl->il", "Path" -> {{2, 3}, {1, 2}}, "Method" -> "Optimal", 
+ "Contractions" -> {"jk,kl->jl", "ij,jl->il"}, 
+ "StepFlops" -> {100000., 100000.}, "Flops" -> 200000., "NaiveFlops" -> 2.*^8, 
+ "Speedup" -> 1000., "LargestIntermediate" -> 10000.|>

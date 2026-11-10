@@ -1,0 +1,1 @@
+Einsum[{{"bond1", "x"}, {"x", "bond2"}} -> {"bond2", "bond1"}, m, n]

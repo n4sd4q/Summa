@@ -1,0 +1,1 @@
+EinsumDiagram[mpsSpec, mpsDims, "ShowPath" -> True]

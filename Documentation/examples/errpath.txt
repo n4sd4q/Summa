@@ -1,0 +1,2 @@
+Einsum::path: Invalid contraction path {{1, 2}}. Use Automatic, "Optimal", "Greedy", "Sequential" or a complete list of position pairs {{i, j}, …}.
+$Failed

@@ -1,0 +1,1 @@
+{Einsum[",->", 2, 3], Einsum["ij,->ij", m, x], Einsum["i->", {a, b, c}]}

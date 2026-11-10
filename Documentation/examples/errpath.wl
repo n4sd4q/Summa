@@ -1,0 +1,1 @@
+Einsum["ij,jk,kl->il", m, n, m, "Path" -> {{1, 2}}]

@@ -1,0 +1,309 @@
+\documentclass[11pt,a4paper]{article}
+\input{../Development/style.tex}
+\familysetup{document=Reference manual}
+\newcommand{\fnentry}[2]{\par\needspace{4\baselineskip}\noindent\fn{#1}\par\nobreak
+  \noindent\begin{minipage}[t]{\linewidth}\leftskip=1.2em #2\end{minipage}\par}
+
+\begin{document}
+\familytitle{Reference manual}{Every function, option and convention, with an example computed by the package}{version 1.0.0 \textperiodcentered{} November 2026}
+
+{\small\tableofcontents}
+
+\section{Installation and loading}
+Summa is a paclet. Install the paclet of the latest \href{https://github.com/n4sd4q/Summa/releases}{release} once, then load
+it in every session; the guided tour comes with the paclet:
+\begin{tcblisting}{listing only, colback=codebg, colframe=codeframe, boxrule=0.5pt, arc=2pt, left=6pt, right=6pt, top=3pt, bottom=3pt,
+  listing options={language=WL, basicstyle=\ttfamily\fontsize{7.5pt}{9.6pt}\selectfont}}
+PacletInstall["https://github.com/n4sd4q/Summa/releases/download/v1.0.0/Summa-1.0.0.paclet"]
+Needs["Summa`"]
+NotebookOpen[PacletObject["Summa"]["AssetLocation", "Examples"]]
+\end{tcblisting}
+To use a clone of the repository without installing, load its folder before \texttt{Needs}:
+\begin{code}
+PacletDirectoryLoad["/path/to/Summa/Summa"]
+\end{code}
+Summa has no dependencies. It needs Mathematica 12.1 or later and is tested with 15.0. In the examples of this manual it is
+loaded by
+\example{load}
+\fnentry{\$SummaVersion}{The version of the package, a string.}
+\example{version}
+Loaded in a notebook, the package prints a banner: its logo, the attribution ``Summa, by Nazzareno Africani'', the version,
+the license, how to cite it, and links to the repository and the website. A script prints nothing and never checks for
+updates.
+\fnentry{SummaUpdateCheck, \$SummaUpdateCheck}{At most once a day, in the background, loading the package in a notebook asks
+GitHub (\texttt{api.github.com}) for the latest release and, if it is newer than \texttt{\$SummaVersion}, adds to the banner
+the \texttt{PacletInstall} line of that release; any failure is silent, and a session without access to the Internet never
+asks. \texttt{\$SummaUpdateCheck = False} before \texttt{Needs["Summa\textasciigrave"]} (in \texttt{init.m} for good) turns the check off;
+the setting is kept when the package is loaded again. \fn{SummaUpdateCheck[]} asks by hand and waits for the answer:
+it gives \texttt{<|"InstalledVersion" -> \dots, "LatestVersion" -> \dots, "InstallLine" -> \dots|>}, and prints the
+\texttt{PacletInstall} line when the latest release is newer; when the release cannot be read it gives \texttt{\$Failed}
+with the message \texttt{SummaUpdateCheck::latest}. This is the only access of the package to the network.}
+The test suite runs with \texttt{wolfram -script Tests/RunTests.wls}.
+
+\section{Conventions}
+\begin{itemize}
+\item \textbf{Subscripts.} In a string specification each index is one character: letters, digits or any Unicode letter,
+  case-sensitive (\texttt{i} and \texttt{I} are different indices). Subscripts are separated by commas; spaces, tabs and new
+  lines are ignored. The arrow is \texttt{->}, \texttt{→} (\texttt{\textbackslash[RightArrow]}), \texttt{\textbackslash[LongRightArrow]}
+  or \texttt{\textbackslash[Rule]}. In the list syntax a subscript is a list, and an index is any expression.
+\item \textbf{Summation.} An index that appears in the operands and not in the output is summed over; an index of the output
+  is kept. An index can appear any number of times, within one operand (diagonals and traces) and across operands (batch
+  indices and hyperedges). An index of the output cannot repeat, as in numpy.
+\item \textbf{Implicit output.} Without the arrow, the output has the indices that appear exactly once, sorted: by character
+  code in a string specification (upper case before lower case), in canonical order (\texttt{Sort}) in the list syntax;
+  the indices of the ellipsis come first.
+\item \textbf{Ellipsis.} \texttt{...} (or \texttt{…}) stands for the leading axes that a subscript does not name, at most once
+  per subscript. The ellipses of the operands are aligned from the right and broadcast as in numpy; when the operands have
+  such axes, an explicit output must contain \texttt{...}.
+\item \textbf{Dimensions.} An index has one dimension in all its places; an axis of size 1 is broadcast against a larger
+  one. The places of an index repeated within one operand must have the same dimension.
+\item \textbf{Operands.} A tensor is a rectangular list (packed or not) or a \texttt{SparseArray}; any other argument,
+  \texttt{Sqrt[2]} or \texttt{a + b} included, is a scalar, with the empty subscript. Entries can be numbers of any kind or
+  symbolic expressions. A result with no index is a scalar.
+\item \textbf{Paths.} A contraction path is a list of pairs in the linear format of numpy and opt\_einsum, 1-based: each pair
+  gives the positions of two tensors in the current list, which are removed; their result is appended at the end.
+\item \textbf{Costs.} The cost of a pairwise contraction is the number of terms of its sum, the product of the dimensions of
+  all its indices; the cost of a path (\opt{Flops}) is the sum over its steps, plus the size of each operand with a
+  diagonal or an index summed alone. The naive cost (\opt{NaiveFlops}) is the product of the dimensions of all the indices
+  times the number of operands minus one (at least one).
+\end{itemize}
+Spaces, Unicode letters and the arrow $\to$; and the case of the indices:
+\example{labels}
+\example{casesensitive}
+The implicit output, in a string and in the list syntax (\opt{Spec} of \fn{EinsumPath} writes it out):
+\example{implicitorder}
+The ellipsis comes first in the implicit output; it can also stand for trailing axes:
+\example{ellipsisimplicit}
+Broadcasting of an axis of size 1, and the dimensions of a diagonal, which are not broadcast:
+\example{broadcastrule}
+\example{diagonalsame}
+Scalars, and a sum over all the entries:
+\example{scalar}
+
+\section{Einsum}
+\fnentry{Einsum}{\fn{Einsum["spec", t1, t2, \dots]} evaluates the einsum of the string \texttt{spec}, as
+\texttt{"ij,jk->ik"}. \fn{Einsum[\{sub1, sub2, \dots\} -> out, t1, t2, \dots]} takes the subscripts as lists of indices
+(or as strings), \fn{Einsum[\{sub1, sub2, \dots\}, \dots]} has the implicit output and \fn{Einsum["in" -> "out", \dots]} is the
+string form written as a rule. The order of the contractions is chosen, each pairwise contraction runs on a kernel (BLAS
+\texttt{Dot}, a batched or a broadcasting product), and the plan is cached.}
+\example{forms}
+\keeplines{12}Options:
+
+{\small\begin{tabularx}{\linewidth}{llX}\toprule option & default & values \\ \midrule
+\opt{Path} & \texttt{Automatic} & \texttt{Automatic}: \opt{Optimal} up to 8 tensors, \opt{Greedy} beyond; \opt{Optimal}: the
+ cheapest path, by dynamic programming over the subsets of the tensors (up to 14 tensors); \opt{Greedy}: at each step the
+ pair that least increases the size (opt\_einsum); \opt{Sequential}: from left to right; \texttt{\{\{i, j\}, \dots\}}: a
+ complete path of your own (linear format, 1-based) \\
+\opt{BatchMethod} & \texttt{Automatic} & the kernel of a batched contraction: \texttt{Automatic} (a cost model), \opt{Dot} (a
+ loop of \texttt{Dot}) or \opt{Vectorized} (products and \texttt{Total} on packed arrays) \\
+\opt{Cache} & \texttt{True} & \texttt{False}: the plan is made again and not kept \\ \bottomrule\end{tabularx}}
+
+\smallskip
+The result does not depend on the options, only the time to get it:
+\example{optpath}
+\example{optbatch}
+\example{optcache}
+An unknown option gives a message and is ignored:
+\example{optunknown}
+
+\section{EinsumPath}
+\fnentry{EinsumPath}{\fn{EinsumPath[spec, t1, t2, \dots]} or \fn{EinsumPath[spec, \{dims1, dims2, \dots\}]} describes the
+contraction path of an einsum and its cost, from the shapes alone: an association with}
+
+{\small\begin{tabularx}{\linewidth}{lX}\toprule key & \\ \midrule
+\opt{Spec} & the specification, written out (with the implicit output) \\
+\opt{Path} & the path, in the linear format of numpy, 1-based \\
+\opt{Method} & \opt{Optimal}, \opt{Greedy}, \opt{Sequential}, \opt{User}, or \opt{Trivial} (one or two tensors) \\
+\opt{Contractions} & the specification of each pairwise contraction \\
+\opt{StepFlops} & the cost of each pairwise contraction \\
+\opt{Flops} & the cost of the path \\
+\opt{NaiveFlops} & the cost of the sum written out over all the indices at once \\
+\opt{Speedup} & \opt{NaiveFlops}/\opt{Flops} \\
+\opt{LargestIntermediate} & the size of the largest tensor built on the way \\ \bottomrule\end{tabularx}}
+
+\smallskip
+Option \opt{Path}, with the values of \fn{Einsum}. The product of three matrices: $A$ times $B$ first, which is cheaper
+than $B$ times $C$ first:
+\example{path}
+\example{pathuser}
+The tensors or their dimensions give the same description:
+\example{pathtensors}
+With one or two tensors there is nothing to choose; an operand with a diagonal or an index summed alone costs its size,
+and the speed-up can then be below 1:
+\example{pathtrivial}
+
+\section{EinsumFunction}
+\keepfor[10]{efsummary}\fnentry{EinsumFunction}{\fn{EinsumFunction[spec, \{dims1, dims2, \dots\}]} makes the plan of an einsum once, for tensors of
+the given dimensions (\texttt{\{\}} for a scalar), and gives a function: \fn{ef[t1, t2, \dots]} runs the plan. Tensors of other
+dimensions give \texttt{Einsum::mismatch} and \texttt{\$Failed}. Options \opt{Path} and \opt{BatchMethod}, as \fn{Einsum}. In
+a notebook it shows a summary box with the icon of the network, the specification and the cost; opened, it shows the
+shapes, the naive cost, the speed-up, the largest intermediate and the path.}
+\example{efsummary}
+\example{efapply}
+\example{efscalar}
+\keeplines{14}Its properties:
+
+{\small\begin{tabularx}{\linewidth}{lX}\toprule property & \\ \midrule
+\opt{Spec}, \opt{Path}, \opt{Method}, \opt{Flops}, \dots & \opt{NaiveFlops}, \opt{Speedup}, \opt{LargestIntermediate},
+ \opt{Contractions}: as in \fn{EinsumPath} \\
+\opt{Shapes} & the dimensions of the operands \\
+\opt{Diagram} & \fn{EinsumDiagram} of the einsum, with the dimensions and \texttt{"ShowPath" -> True} \\
+\opt{Tree} & \fn{EinsumTree} of the einsum, with the dimensions \\
+\opt{Plan} & the plan itself, an association, for inspection (its form may change between versions) \\
+\opt{Properties} & the list of the properties \\ \bottomrule\end{tabularx}}
+\example{efproperties}
+\example{efvalues}
+\example{efplan}
+\example{efdiagram}
+\example{efmismatch}
+
+\section{EinsumDiagram}
+\fnentry{EinsumDiagram}{\fn{EinsumDiagram[spec]} draws the tensor network of an einsum; \fn{EinsumDiagram[spec, t1, t2, \dots]}
+or \fn{EinsumDiagram[spec, \{dims1, dims2, \dots\}]} also writes the dimensions. Every index is a COPY tensor with one leg for
+each time it appears, plus one if it is in the output, and is drawn by the number of its legs:}
+
+{\small\begin{tabularx}{\linewidth}{lX}\toprule index & drawn as \\ \midrule
+two legs, in two tensors & a bond, with the name of the index in the middle \\
+two legs, in one tensor and the output & an open leg, in blue \\
+two legs, in one tensor & a loop: a trace \\
+one leg (summed in one tensor alone) & a dashed leg ending in a small circle: a contraction with the vector of ones \\
+three legs or more & a hyperedge: a purple dot joined to the tensors (and an open leg if it is in the output) \\ \bottomrule
+\end{tabularx}}
+
+\smallskip
+Bonds get thicker as their dimension grows (on a logarithmic scale); tensors with the same name have the same colour;
+in a notebook, a tooltip on each element tells its indices, dimensions and role. The automatic layout is classical
+multidimensional scaling of the distances in the graph, refined by stress majorization, with the dangling legs in the free
+angular gaps. Options:
+
+{\small\begin{tabularx}{\linewidth}{llX}\toprule option & default & \\ \midrule
+\opt{TensorNames} & \texttt{Automatic} & the names of the symbols passed as tensors, otherwise A, B, C, \dots; or a list \\
+\opt{ShowDimensions} & \texttt{Automatic} & the dimensions next to the indices, when they are known; \texttt{False} \\
+\opt{ShowPath} & \texttt{False} & \texttt{True}: each bond marked with the step at which it is contracted \\
+\opt{Path} & \texttt{Automatic} & the path drawn by \opt{ShowPath} and \opt{Steps}, as in \fn{Einsum} \\
+\opt{Layout} & \texttt{Automatic} & \opt{Circle}, \opt{Line}, or the coordinates of the tensors, \texttt{\{\{x1, y1\}, \dots\}} \\
+\opt{Highlight} & \texttt{\{\}} & the positions of the tensors drawn with a thick border \\
+\opt{Steps} & \texttt{False} & \texttt{True}: a list of pictures, one per step and one of the result \\
+\opt{DefaultDimension} & 8 & the dimension of every index for the path, when no dimensions are given \\
+\texttt{ImageSize}, \texttt{Background} & \texttt{Automatic}, \texttt{White} & as in \texttt{Graphics} \\ \bottomrule\end{tabularx}}
+
+\smallskip
+\keepfor[4]{diagramplain}A hyperedge kept in the output:
+\example{diagramplain}
+\keepfor[4]{diagramcircle}The layouts \opt{Circle}, \opt{Line} and coordinates of your own, with names and highlighted tensors:
+\example{diagramcircle}
+\example{diagramline}
+\example{diagramcoordinates}
+\keepfor[4]{diagramsymbols}Tensors passed as symbols are named after them, and the dimensions are written:
+\example{diagramsymbols}
+\keepfor[5]{diagramdimensions}The path, with the dimensions given but not written, and with the default dimension of every index:
+\example{diagramdimensions}
+\example{diagramdefault}
+\texttt{"Steps" -> True} gives a list of pictures with the same plot range, to be shown by \texttt{ListAnimate}:
+\example{diagramsteps}
+
+\section{EinsumTree}
+\keepfor[12]{tree}\fnentry{EinsumTree}{\fn{EinsumTree[spec, t1, t2, \dots]} or \fn{EinsumTree[spec, \{dims1, dims2, \dots\}]} draws the
+contraction tree of the path: the leaves are the tensors, with their subscripts; each box is an intermediate, with its
+indices, the indices summed at that step (or ``batch'' and ``outer'' when none is summed) and its cost; the box of the
+result has an orange border. The title gives the specification, the cost of the path, the naive cost, the speed-up and the
+largest intermediate. Without dimensions (\fn{EinsumTree[spec]}) the path is the one for \opt{DefaultDimension} and the
+costs are not written. Options \opt{TensorNames}, \opt{Path}, \opt{DefaultDimension}, \texttt{ImageSize} and
+\texttt{Background}, as in \fn{EinsumDiagram}.}
+\example{tree}
+\example{treenodims}
+
+\section{The plan cache}
+\fnentry{EinsumClearCache}{\fn{Einsum} keeps the plan of each call, keyed by the specification, the shapes and the options
+\opt{Path} and \opt{BatchMethod}; a second call with the same key goes straight to the kernels. The cache holds up to 2000
+plans and is emptied when full; \fn{EinsumClearCache[]} empties it.}
+\example{clearcache}
+
+\section{Messages}
+\fn{Einsum}, \fn{EinsumPath}, \fn{EinsumFunction}, \fn{EinsumDiagram} and \fn{EinsumTree} give a message and
+\texttt{\$Failed} for an invalid input; \texttt{Einsum::optbig} and the message of an unknown option are warnings, and the
+computation goes on.
+
+{\small\begin{tabularx}{\linewidth}{lX}\toprule message & when \\ \midrule
+\texttt{Einsum::spec} & the specification cannot be read \\
+\texttt{Einsum::nargs} & the number of tensors is not that of the subscripts \\
+\texttt{Einsum::rank} & a tensor has not as many axes as its subscript has indices \\
+\texttt{Einsum::ellrank} & a tensor has fewer axes than the indices named next to its ellipsis \\
+\texttt{Einsum::ell} & a subscript has more than one ellipsis \\
+\texttt{Einsum::ellout} & the operands have ellipsis axes, and the explicit output has no ellipsis \\
+\texttt{Einsum::dim} & an index has different dimensions (other than 1) \\
+\texttt{Einsum::outrep} & an index repeats in the output \\
+\texttt{Einsum::outnf} & an index of the output is in no operand \\
+\texttt{Einsum::path} & the path is not one of the strategies or a complete list of pairs \\
+\texttt{Einsum::array} & an operand is a list that is not a rectangular array \\
+\texttt{Einsum::mismatch} & an \fn{EinsumFunction} gets tensors of other dimensions (section~5) \\
+\texttt{Einsum::optbig} & \opt{Optimal} is asked for more than 14 tensors: \opt{Greedy} is used \\
+\texttt{Einsum::optx} & an unknown option (section~3) \\
+\texttt{SummaUpdateCheck::latest} & the latest release cannot be read from GitHub \\ \bottomrule\end{tabularx}}
+
+\smallskip
+\example{errspec}
+\example{errnargs}
+\example{errrank}
+\example{errellrank}
+\example{errell}
+\example{errellout}
+\example{errdim}
+\example{erroutrep}
+\example{erroutnf}
+\example{errpath}
+\example{errarray}
+\example{erroptbig}
+
+\section{Performance}
+\begin{itemize}
+\item \textbf{Packed arrays.} \texttt{Developer\textasciigrave ToPackedArray}, \texttt{RandomReal} and \texttt{N} give packed arrays of
+  machine numbers, on which every kernel is fast; \fn{Einsum} packs its operands when it can, and its results on
+  machine numbers come out packed:
+\end{itemize}
+\example{packed}
+\begin{itemize}
+\item \textbf{Loops.} In a loop, use \fn{EinsumFunction}, or call \fn{Einsum} always with the same shapes, so that the plan
+  comes from the cache.
+\item \textbf{Large networks.} Beyond 8 tensors the default path is \opt{Greedy}. When the planning time is negligible
+  against the contraction, try \texttt{"Path" -> "Optimal"} (up to 14 tensors), and compare the two with \fn{EinsumPath}.
+\item \textbf{Batched contractions.} The cost model of \opt{BatchMethod} uses estimates, not timings of your machine; a kernel
+  can be forced with \texttt{"BatchMethod" -> "Dot"} or \opt{Vectorized}.
+\item \textbf{Sparse arrays.} A \texttt{SparseArray} stays sparse in the steps that are matrix products (\texttt{Dot}); the other
+  kernels make it dense.
+\item \textbf{Timings.} \texttt{Examples/Benchmarks.wl} measures \fn{Einsum} and \fn{EinsumFunction} on your machine against
+  \texttt{Dot}, \texttt{MapThread}, \texttt{TensorContract} and \texttt{Total}.
+\end{itemize}
+
+\section{Limitations}
+\begin{itemize}
+\item An index cannot repeat in the output (\texttt{"i->ii"} is not allowed, as in numpy).
+\item The exact search of the path is exponential in the number of tensors: the default is \opt{Greedy} beyond 8 tensors, and
+  \opt{Optimal} is accepted up to 14.
+\item A \texttt{SparseArray} stays sparse only in the steps that are matrix products.
+\item The constants of the cost model of the batched contractions are estimates, not calibrated on your machine.
+\end{itemize}
+
+\section{Citing Summa}
+If you use Summa in published work, please cite it as described in \texttt{CITATION.cff}:
+\begin{code}
+@software{Summa,
+  author  = {Africani, Nazzareno},
+  title   = {Summa: fast Einstein summation (einsum) for the Wolfram Language},
+  version = {1.0.0},
+  year    = {2026},
+  url     = {https://github.com/n4sd4q/Summa}
+}
+\end{code}
+
+\section{License}
+Summa is free software, released under the GNU General Public License, version 3 or later
+(\href{https://github.com/n4sd4q/Summa/blob/main/LICENSE}{\texttt{LICENSE}}), with two additional terms under its
+section~7 (\href{https://github.com/n4sd4q/Summa/blob/main/NOTICE}{\texttt{NOTICE}}): the attribution ``Summa, by Nazzareno
+Africani'' and the contents of \texttt{NOTICE} must be kept in all copies and modified versions, in their documentation and in
+the message printed when the program is loaded in a notebook; and a modified version must be marked as different from the
+original: it must not be distributed under the name ``Summa'' alone, and its documentation and its loading message must say
+that it is a modified version of Summa by Nazzareno Africani, by whom and when it was modified. Copyright \copyright{} 2026
+Nazzareno Africani (SISSA, Trieste).
+
+\end{document}

@@ -1,0 +1,1 @@
+Einsum["ij->ji", m, "Foo" -> 1]

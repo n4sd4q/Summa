@@ -1,0 +1,1 @@
+EinsumDiagram["ab,bc,ca->", "Layout" -> "Circle", "TensorNames" -> {"X", "Y", "Z"}]

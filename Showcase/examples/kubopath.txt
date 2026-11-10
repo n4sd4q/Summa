@@ -1,0 +1,2 @@
+<|"Contractions" -> {"knm,kmn->knm", "knm,knmw->w"}, "Flops" -> 643200., 
+ "NaiveFlops" -> 1.2832*^6|>

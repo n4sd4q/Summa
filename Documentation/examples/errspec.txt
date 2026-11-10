@@ -1,0 +1,2 @@
+Einsum::spec: Invalid einsum specification ij,jk->>ik.
+$Failed

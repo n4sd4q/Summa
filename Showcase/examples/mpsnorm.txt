@@ -1,0 +1,4 @@
+<|"Contractions" -> {"pa,aqb->pqb", "brc,cs->brs", "pqb,brs->pqrs", 
+   "pA,AqB->pqB", "BrC,Cs->Brs", "pqB,Brs->pqrs", "pqrs,pqrs->"}, 
+ "Flops" -> 67600., "NaiveFlops" -> 7.69658*^12, "Speedup" -> 1.13855*^8, 
+ "LargestIntermediate" -> 256.|>

@@ -1,0 +1,1 @@
+{Einsum[",ij->ij", Sqrt[2], m], Einsum[",i,i->", a + b, {1, 2}, {3, 4}]}

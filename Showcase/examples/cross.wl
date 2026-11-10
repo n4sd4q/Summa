@@ -1,0 +1,1 @@
+Einsum["ijk,j,k->i", LeviCivitaTensor[3], Array[u, 3], Array[v, 3]]

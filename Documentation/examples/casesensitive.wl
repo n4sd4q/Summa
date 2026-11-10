@@ -1,0 +1,1 @@
+Einsum["iI,iI->", m, n] == Total[m n, 2]

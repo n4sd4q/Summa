@@ -1,0 +1,1 @@
+EinsumDiagram["iijx,jkh,kh,lh->l", ImageSize -> 300]

@@ -1,0 +1,1 @@
+EinsumTree["ai,bi,ci->abc", {{30, 4}, {50, 4}, {60, 4}}, ImageSize -> 320]

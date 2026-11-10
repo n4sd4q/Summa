@@ -1,0 +1,2 @@
+Einsum::outnf: Output index z does not appear in any input.
+$Failed

@@ -1,0 +1,1 @@
+EinsumDiagram["ai,bi,ci->abci", ImageSize -> 260]

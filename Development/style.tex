@@ -1,0 +1,56 @@
+% ---------------------------------------------------------------------------
+%  Summa -- the style of the showcase and of the manual: the common style of the packages, n4sd4q.sty (a copy of
+%  the one of the hub, with the palette n4sd4q-palette.tex: found through TEXINPUTS, set by build_pdf.sh and
+%  build_manual.sh), and what is particular to Summa. The examples are computed by Development/run_examples.wl:
+%  examples/NAME.wl is the code, NAME.tex the output as a formula, NAME.txt the output as text, NAME.pdf the output
+%  as a picture (a diagram, a contraction tree, a plot, the summary box of an EinsumFunction).
+% ---------------------------------------------------------------------------
+\usepackage[utf8]{inputenc}
+\usepackage{n4sd4q}
+\familysetup{package=Summa, logo=../Logo/Summa_logo_white.pdf}
+
+\familykeywords{Einsum,EinsumPath,EinsumFunction,EinsumDiagram,EinsumTree,EinsumClearCache,SummaUpdateCheck}
+\lstset{literate={α}{{$\alpha$}}1 {β}{{$\beta$}}1 {γ}{{$\gamma$}}1 {δ}{{$\delta$}}1 {ε}{{$\varepsilon$}}1 {ϵ}{{$\epsilon$}}1 {η}{{$\eta$}}1
+  {μ}{{$\mu$}}1 {ν}{{$\nu$}}1 {σ}{{$\sigma$}}1 {τ}{{$\tau$}}1 {ψ}{{$\psi$}}1 {φ}{{$\varphi$}}1 {ϕ}{{$\phi$}}1 {χ}{{$\chi$}}1
+  {ω}{{$\omega$}}1 {→}{{$\to$}}1 {…}{{$\ldots$}}1 {·}{{$\cdot$}}1 {∑}{{$\sum$}}1 {×}{{$\times$}}1}
+% the same letters in the text (\texttt{α[k]}, as the code writes them)
+\DeclareUnicodeCharacter{03B1}{\ensuremath{\alpha}}\DeclareUnicodeCharacter{03B2}{\ensuremath{\beta}}
+\DeclareUnicodeCharacter{03C3}{\ensuremath{\sigma}}\DeclareUnicodeCharacter{2192}{\ensuremath{\to}}
+
+\newcommand{\exmissing}[1]{\textcolor{red}{[missing example: \detokenize{#1}]}}
+\makeatletter
+\newcommand{\excodeafter}{\tcb@parfillskip@check\par\ifvmode\nobreak\@nobreaktrue\nointerlineskip\addvspace{\glueexpr2pt-\parskip}\fi}
+\makeatother
+\newcommand{\excode}[1]{\ifhmode{\widowpenalty=10000\par}\nobreak\fi\IfFileExists{examples/#1.wl}{\tcbinputlisting{listing only,
+  colback=codebg, colframe=codeframe, boxrule=0.5pt, arc=2pt, left=6pt, right=6pt, top=3pt, bottom=3pt, before skip=4pt,
+  after=\excodeafter, listing file={examples/#1.wl}, listing options={language=WL}}}{\exmissing{#1}}}
+\newcommand{\exformula}[1]{\begin{exoutput}\raggedright\IfFileExists{examples/#1.tex}{$\displaystyle\input{examples/#1.tex}$}{\exmissing{#1}}\end{exoutput}}
+\newcommand{\extext}[1]{\IfFileExists{examples/#1.txt}{\tcbinputlisting{listing only, colback=white, colframe=codeframe,
+  boxrule=0.5pt, arc=2pt, left=24pt, right=6pt, top=2pt, bottom=2pt, before skip=2pt, after skip=8pt,
+  listing file={examples/#1.txt}, listing options={style=plainoutput}, overlay unbroken and first={\node[anchor=north west,
+  font=\scriptsize\sffamily\color{comment}] at ([xshift=4pt, yshift=-5pt]frame.north west) {out};}}}{\exmissing{#1}}}
+% a picture, centred in the box of the output, on white: at the size of its PDF (the front end exports it at 72/100 of
+% its size on the screen), or as wide as the box if it is wider (\exprepare{width}{NAME} sets the width instead). The code
+% and the picture stay on the same page
+\newsavebox{\expicturebox}
+\newcommand{\exprepare}[2]{\ifx\relax#1\relax\sbox{\expicturebox}{\includegraphics{examples/#2.pdf}}%
+  \ifdim\wd\expicturebox>\dimexpr\linewidth-38pt\relax
+  \sbox{\expicturebox}{\resizebox{\dimexpr\linewidth-38pt\relax}{!}{\includegraphics{examples/#2.pdf}}}\fi
+  \else\sbox{\expicturebox}{\includegraphics[width=#1]{examples/#2.pdf}}\fi}
+\newcommand{\expicture}{\begin{exoutput}\centering\usebox{\expicturebox}\end{exoutput}}
+% room for a picture and its code: a new page when the rest of this one is too short. Unlike \needspace, no negative
+% penalty is left when the room is there, so that the page is not broken here anyway; \keepfor[lines]{NAME} before the
+% text that leads to a picture (headings included, about so many lines with the code) keeps the text with it
+\makeatletter
+\newcommand{\exkeepspace}[1]{\par\penalty\@M\begingroup\dimen@=\dimexpr#1\relax\dimen@ii=\pagegoal\advance\dimen@ii-\pagetotal
+  \ifdim\dimen@>\dimen@ii\ifdim\dimen@ii>\z@\vfil\penalty-\@M\fi\fi\endgroup}
+\makeatother
+\newcommand{\expicturekeep}[2]{\IfFileExists{examples/#2.pdf}{\exprepare{#1}{#2}%
+  \exkeepspace{\ht\expicturebox+\dp\expicturebox+8\baselineskip}}{}}
+\newcommand{\keeplines}[1]{\exkeepspace{#1\baselineskip}}   % room for a table and the sentence before it
+\newcommand{\keepfor}[2][8]{\IfFileExists{examples/#2.pdf}{\exprepare{}{#2}%
+  \exkeepspace{\ht\expicturebox+\dp\expicturebox+#1\baselineskip+3\baselineskip}}{}}   % [lines of text and code before it]
+\newcommand{\example}[1]{\expicturekeep{}{#1}\excode{#1}\IfFileExists{examples/#1.tex}{\exformula{#1}}{\IfFileExists{examples/#1.txt}{\extext{#1}}%
+  {\IfFileExists{examples/#1.pdf}{\expicture}{}}}}
+% an example whose picture is drawn at a given width
+\newcommand{\examplewidth}[2]{\expicturekeep{#1}{#2}\excode{#2}\IfFileExists{examples/#2.pdf}{\expicture}{\exmissing{#2}}}

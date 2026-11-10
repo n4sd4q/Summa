@@ -1,0 +1,2 @@
+Einsum::optbig: The exact path search is exponential and 15 tensors exceed the limit of 14; using "Greedy" instead.
+Greedy

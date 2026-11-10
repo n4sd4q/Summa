@@ -1,0 +1,3 @@
+{"Spec", "Shapes", "Names", "Inputs", "Output", "Dims", "Type", "Pre", "Sets", 
+ "SSA", "Method", "Steps", "Final", "FinalPerm", "Flops", "NaiveFlops", 
+ "LargestIntermediate"}

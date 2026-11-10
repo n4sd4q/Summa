@@ -1,0 +1,1 @@
+EinsumDiagram["ij,jk,kl->il", "Layout" -> "Line"]

@@ -1,0 +1,1 @@
+{Einsum["ij,jk", m, n] == m . n, Einsum["ba", m] == Transpose[m], Einsum["ii", m]}

@@ -30,6 +30,12 @@ factor, `"ij,jk->ik"`, and Summa works out how to compute it — the cheapest or
 kernel of each, BLAS or vectorised, with no transposes, reshapes or intermediate arrays by hand. An index may appear in
 any number of tensors — diagonals, traces, hyperedges, batch indices — and the network can be drawn as it is computed.
 
+<p align="center">
+  <a href="https://n4sd4q.github.io/Summa/Media/demo.mp4"><img src="Media/demo_preview.webp" width="720" alt="Preview of the demo video:
+  indices as on paper, an index in any number of tensors, a Kubo formula as one einsum, a tensor network and the order of
+  its contractions, compiled einsums"></a>
+</p>
+
 ## What it does
 
 - **Written as on paper, computed for you.** The string syntax of numpy, `"ij,jk->ik"`, with implicit output, ellipsis

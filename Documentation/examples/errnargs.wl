@@ -1,0 +1,1 @@
+Einsum["ij,jk->ik", m]

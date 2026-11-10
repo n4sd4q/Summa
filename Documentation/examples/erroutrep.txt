@@ -1,0 +1,2 @@
+Einsum::outrep: Output index i appears more than once.
+$Failed

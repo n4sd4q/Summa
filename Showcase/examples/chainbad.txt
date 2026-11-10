@@ -1,0 +1,1 @@
+<|"Contractions" -> {"ij,jk->ik", "kl,ik->il"}, "Flops" -> 2.*^7|>

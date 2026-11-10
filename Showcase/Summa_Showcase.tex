@@ -1,0 +1,320 @@
+\documentclass[11pt,a4paper]{article}
+\input{../Development/style.tex}
+\familysetup{document=Showcase}
+
+\begin{document}
+\familytitle{Tensor contractions written as on paper: the package finds the order and the kernels}{Everything the package
+does, step by step: every output is computed by the code printed above it}{version 1.0.0 \textperiodcentered{} November 2026}
+
+\begin{tcolorbox}[colback=accentpale, colframe=accentpale, arc=2pt, left=8pt, right=8pt]
+\small Summa is a Wolfram Language package for tensor contractions, written with the syntax of \texttt{numpy.einsum}. A
+contraction is written as on paper, by the indices of every factor: \texttt{"ij,jk->ik"} is $\sum_ja_{ij}b_{jk}$. How to
+compute it is left to the package: it chooses the order of the pairwise contractions, which in a network of tensors can
+change the cost by orders of magnitude, and the kernel of each, BLAS or a vectorised one, with no transposes, reshapes or
+intermediate arrays written by hand. An index can appear any number of times, in one tensor or in many. This document goes
+through all the package does, from a matrix product to tensor networks and a Kubo formula: the syntax; indices repeated at
+will; the order of the contractions and the pictures of a network; compiled einsums for loops; symbolic, exact, complex
+and sparse arrays; computations of physics; how a contraction runs and how the package is checked. The code of each
+section uses only what the previous ones introduced.
+\end{tcolorbox}
+
+{\small\tableofcontents}
+
+% =====================================================================================================================
+\section{Written as on paper}
+
+\subsection{One string for the whole contraction}
+The package is loaded with
+\example{load}
+Each operand gets a subscript, a string of one-character indices; the subscripts are separated by commas, and the arrow is
+followed by the indices of the result. An index that appears in the operands and not in the result is summed over:
+\texttt{Einsum["ij,jk->ik", m, n]} is $\sum_jm_{ij}n_{jk}$, the matrix product,
+\example{first}
+\example{firstcheck}
+How it is computed, here by one call of \texttt{Dot}, is the business of the package, for this contraction and for every
+one below. One operand is enough for a transpose, a trace, a diagonal and sums over rows or over all entries:
+\example{onematrix}
+Two vectors give the inner and the outer product:
+\example{vectors}
+
+\subsection{The implicit output}
+Without the arrow, the result has the indices that appear exactly once, in alphabetical order, as in numpy:
+\texttt{"ij,jk"} is the matrix product, \texttt{"ba"} the transpose and \texttt{"ii"} the trace:
+\example{implicit}
+
+\subsection{Diagonals}
+An index repeated within one operand takes a diagonal: \texttt{"iij->ij"} is $t_{iij}$, and \texttt{"iii->i"} the
+diagonal of a cube. The entries of \texttt{digits} are $100i+10j+k$, so the results show which ones were taken:
+\example{diagonals}
+
+\subsection{The ellipsis and broadcasting}
+\texttt{...} stands for the leading indices that are not named, as in numpy; here a stack of five $2\times3$ matrices
+times one $3\times4$ matrix:
+\example{ellipsis}
+Axes of size 1 are broadcast: the single row of the second operand is paired with every row of the first:
+\example{broadcast}
+
+\subsection{Scalars}
+An empty subscript is a scalar operand. Any argument that is not a list or a \texttt{SparseArray}, \texttt{Sqrt[2]} or
+\texttt{a + b} as well, is a scalar:
+\example{scalars}
+
+\subsection{Labels of any kind}
+In the list syntax the subscripts are lists, and an index can be any expression: a string, an integer, a symbol with
+arguments. The string syntax also takes Unicode letters, spaces and the arrow $\to$:
+\example{listsyntax}
+\example{unicode}
+Indices with arguments, $\alpha_k$ and $\sigma_k$ written \texttt{α[k]} and \texttt{σ[k]}, let a program write the
+subscripts of a network of any size (section~\ref{sec:mps}).
+
+% =====================================================================================================================
+\section{Indices repeated at will}\label{sec:repeated}
+On paper an index appears in as many factors as needed: $\sum_ix_iy_iz_i$, or a batch index $b$ that labels independent
+products and stays in the result, as in $\sum_jL_{bij}R_{bjk}$. Summa allows an index any number of times, within one tensor
+and across tensors, and this is the reason it exists. The two tools of the Wolfram Language for the job stop short of
+it. \texttt{ResourceFunction["EinsteinSummation"]} refuses an index that appears three times
+(\texttt{\{\{i\}, \{i\}, \{i\}\} -> \{\}}) and a batch index kept in the result
+(\texttt{\{\{k, a, b\}, \{k, b, c\}\} -> \{k, a, c\}}). \texttt{TensorContract} can sum over three or more slots, but of the
+outer product of all the operands, which it builds first, and it cannot keep a shared index in the result (a batch index,
+a diagonal).
+
+\subsection{One index in three tensors}
+\example{threevectors}
+\texttt{TensorContract} gives the same sum from the outer product:
+\example{tensorcontract}
+In the diagrams of section~\ref{sec:pictures} such an index is a hyperedge, a dot joined to all the tensors that share it.
+
+\subsection{Batch indices}
+An index shared by the operands and kept in the result labels independent contractions, all done at once. The quadratic
+form $\sum_{ij}x_{bi}q_{ij}x_{bj}$ of every row $b$, with $b$ in two operands and in the result:
+\example{quadraticforms}
+A thousand matrix products in one call:
+\example{batchmatmul}
+
+\subsection{The CP reconstruction}
+A tensor in the canonical polyadic form is a sum of outer products, $T_{abc}=\sum_iA_{ai}B_{bi}C_{ci}$: the index $i$ is in
+three tensors, and $a$, $b$, $c$ are in the result. With $r=8$ terms:
+\example{cp}
+\texttt{TensorContract} would first build the outer product of the three matrices, $40^3\cdot8^3$ numbers. Summa contracts
+two of them, keeping $i$ as a batch index, and then the third, with half a million multiplications (the cost is given by
+\fn{EinsumPath}, section~\ref{sec:order}):
+\example{cpcost}
+On the author's computer, with Mathematica 15, the outer product takes 262\,MB and 0.37\,s, the einsum 1.6\,ms.
+
+\subsection{Shared and kept}
+An index can also be shared and kept without any other: the dot products of the rows of two matrices,
+$\sum_jm_{ij}n_{ij}$ for every $i$:
+\example{rowdots}
+
+% =====================================================================================================================
+\section{The order of the contractions}\label{sec:order}
+
+\subsection{What a path costs}
+An einsum of $n$ tensors is computed as $n-1$ contractions of two tensors, and their order decides the cost.
+\fn{EinsumPath} tells which order the package chooses and what it costs, from the shapes alone (the tensors or their
+dimensions). For the product of three matrices, $1000\times10$, $10\times1000$ and $1000\times10$:
+\example{chain}
+\opt{Path} is in the linear format of numpy and opt\_einsum~\cite{SG18}, 1-based: each pair gives the positions of two
+tensors in the current list; they are removed, and their result is appended at the end. Here $B$ and $C$ go first,
+then $A$ with their product. The cost of a step is the number of terms of its sum, the product of the dimensions of all its
+indices; \opt{Flops} is the total, \opt{NaiveFlops} the cost of the sum written out over all the indices at once,
+\opt{Speedup} their ratio and \opt{LargestIntermediate} the size of the largest tensor built on the way. Taking $A$ times
+$B$ first costs a hundred times more, and builds a $1000\times1000$ intermediate:
+\example{chainbad}
+
+\subsection{Strategies}
+\texttt{"Path" -> "Optimal"} finds the cheapest order exactly, by dynamic programming over the subsets of the tensors. The
+result of a subset keeps the indices still needed outside it or in the output, which is how an index shared by three
+tensors becomes a batch index of the intermediates. It is the default up to 8 tensors and is accepted up to 14; beyond 8
+the default is \opt{Greedy}, the search of opt\_einsum, which contracts at each step the pair that least increases the size.
+\opt{Sequential} contracts from left to right, and a list of pairs is a path of your own. On a network of five tensors:
+\example{strategies}
+
+\subsection{The norm of a matrix product state}\label{sec:mps}
+A matrix product state (MPS) of $L$ sites has a tensor $A^{(k)}_{\alpha_{k-1}\sigma_k\alpha_k}$ on each site, with a
+physical index $\sigma_k$ of dimension $d$ and bonds $\alpha_k$ of dimension $\chi$. Its norm
+$\langle\psi|\psi\rangle$ joins it to its conjugate over the physical indices. For four sites with $d=2$ and $\chi=64$ the
+sum over all the indices at once has $2^4\cdot64^6\approx7\times10^{10}$ terms of eight factors; the order chosen by the
+package costs $7\times10^4$ multiplications, a speed-up of $10^8$:
+\example{mpsnorm}
+The order matters also among the reasonable ones. The function \texttt{mps} writes the norm of an MPS of any length in the
+list syntax, with the indices \texttt{α[k]} (bonds of the ket), \texttt{β[k]} (bonds of the bra) and \texttt{σ[k]}; the
+tensors at the ends have one bond. \texttt{mpsShapes} gives their dimensions:
+\example{mpsgeneral}
+Contracting the ket first, in the order in which the tensors are written (\opt{Sequential}), builds the whole state, $d^L$
+amplitudes: the cost grows exponentially with $L$. The order of the package keeps every intermediate small, as zipping
+ket and bra together site by site does, and its cost grows linearly; at twenty sites it is more than two thousand times
+cheaper:
+\example{mpstable}
+
+% =====================================================================================================================
+\keepfor[10]{diagrammps}\section{Pictures of a network}\label{sec:pictures}
+
+\subsection{Bonds, open legs, traces, sums and hyperedges}
+\fn{EinsumDiagram} draws the network of an einsum: tensors are disks, a bond joins two tensors that share an index, and an
+index of the result is an open leg, in blue. The MPS of four sites, with its physical legs open:
+\example{diagrammps}
+\keepfor[9]{diagramkinds}Every index is drawn as a COPY tensor (a delta) with one leg for each time it appears, plus one if it is in the result.
+Two legs are a wire: a bond, an open leg, or a loop for a trace. One leg is an index summed in one tensor alone, drawn as
+a dashed leg ending in a small circle (a contraction with the vector of ones). Three or more legs are a hyperedge, a purple
+dot joined to all the tensors that share it. All of them in one network: the trace $i$ and the summed index $x$ on $A$,
+the bonds $j$ and $k$, the hyperedge $h$ shared by $B$, $C$ and $D$, and the open leg $l$:
+\example{diagramkinds}
+Tensors with the same name have the same colour, and tensors passed as symbols are named after them. The layout is
+computed by classical multidimensional scaling of the distances in the graph, refined by stress
+majorization~\cite{GKN04}: chains come out straight, rings round and grids square.
+
+\keepfor[10]{diagrampath}\subsection{Dimensions and the path}
+Given the dimensions, the diagram writes them next to the indices and draws thicker bonds for larger dimensions (on a
+logarithmic scale); \texttt{"ShowPath" -> True} marks each bond with the step at which it is contracted. The norm of the
+MPS of section~\ref{sec:mps}: the ket is contracted from its two ends into its 16 amplitudes (steps 1 to 3), so is the bra
+(4 to 6), and the last step joins them over the physical indices; for four sites this is the cheapest order:
+\example{diagrampath}
+\keepfor[6]{diagramsteps}\texttt{"Steps" -> True} gives one picture per step, with the pair contracted next highlighted, all with the same plot
+range, so that \texttt{ListAnimate} shows the contraction. A ring of three tensors:
+\example{diagramsteps}
+
+\keepfor[8]{tree}\subsection{The contraction tree}
+\fn{EinsumTree} draws the tree of the path: the leaves are the tensors, and each box is an intermediate, with its indices,
+the indices summed at that step and its cost; the title gives the total cost, the naive one, the speed-up and the largest
+intermediate. The matrix chain of section~\ref{sec:order}:
+\example{tree}
+
+% =====================================================================================================================
+\keepfor[12]{efdefine}\section{Compiled einsums and the plan cache}
+\fn{Einsum} keeps the plan of every call (the parsed specification, the path and the kernel of each step) in a cache,
+keyed by the specification and the shapes: a second call with the same shapes goes straight to the kernels.
+\fn{EinsumFunction} makes the plan once, for given shapes, and gives a function to be applied in a loop. The transfer
+operator of an MPS, $x\mapsto\sum_sA^{s\,\mathsf T}xA^s$, that is $\sum_{ab}x_{ab}A_{asc}A_{bsd}$, has the summary of its
+plan:
+\example{efdefine}
+Its properties are those of the path:
+\example{efproperties}
+Three hundred applications of the transfer operator, normalized, converge to its dominant eigenvector: the eigenvalue is
+that of the $64\times64$ transfer matrix, built by another einsum:
+\example{efloop}
+\fn{EinsumClearCache[]} empties the cache.
+
+% =====================================================================================================================
+\section{Symbolic, exact, complex and sparse arrays}
+The kernels are \texttt{Dot}, \texttt{Transpose}, \texttt{Total} and products of arrays, so the entries can be anything:
+symbols, exact numbers, complex numbers. A product of symbolic matrices:
+\example{symbolic}
+The cross product, with the Levi-Civita tensor \texttt{LeviCivitaTensor[3]} (a \texttt{SparseArray}), and the identity
+$\sum_i\epsilon_{ijk}\epsilon_{imn}=\delta_{jm}\delta_{kn}-\delta_{jn}\delta_{km}$:
+\example{cross}
+\example{epsilondelta}
+The Pauli matrices as one $3\times2\times2$ array: $\sum_a\sigma^a\sigma^a=3$, and
+$\sigma^a\sigma^b=\delta_{ab}+i\sum_c\epsilon_{abc}\sigma^c$:
+\example{pauli}
+\example{pauliproduct}
+A \texttt{SparseArray} stays sparse in the steps that are matrix products; the other kernels make it dense. The square of
+the hopping matrix of a ring of 1000 sites:
+\example{sparse}
+
+% =====================================================================================================================
+\section{Physics}
+
+\keepfor[10]{ising}\subsection{The partition function of the Ising model}
+On a lattice, $Z=\sum_{\{s\}}\prod_{\langle ij\rangle}W_{s_is_j}$ with $W_{ss'}=e^{\beta Jss'}$: each bond is a $2\times2$
+matrix, and each spin an index shared by all the bonds that touch it. On an open $3\times3$ lattice with the sites
+$a,\dots,i$ the inner spins are in three or four bonds, the hyperedges of the diagram, and the spins at the corners, in
+two bonds, are plain bonds:
+\example{ising}
+With $x=e^{\beta J}$, the partition function is a polynomial in $x$ and $1/x$, exact:
+\example{isingz}
+It is the sum over the $2^9$ configurations:
+\example{isingcheck}
+
+\subsection{Matrix product states, exactly}
+The AKLT state of the spin-1 chain~\cite{AKLT87} is an MPS with $\chi=2$: $A^{+1}=\sqrt{2/3}\,\sigma^+$,
+$A^0=-\sqrt{1/3}\,\sigma^z$, $A^{-1}=-\sqrt{2/3}\,\sigma^-$. On a ring of $L$ sites, \texttt{akltRing} writes its norm, a
+trace over the bonds, and with operators on some sites an expectation value. With exact entries the results are exact:
+\example{aklt}
+They are $\mathrm{Tr}\,E^L=1+3(-1/3)^L$, from the eigenvalues of the transfer matrix $E$, $1$ and $-1/3$ three times:
+\example{akltnorm}
+The correlation $\langle S^z_1S^z_{1+r}\rangle$ on a ring of ten sites, for $r=1,\dots,4$; as the ring grows it tends to
+its value on the infinite chain, $\frac43(-\frac13)^r$, that is $-\frac49$, $\frac4{27}$, $-\frac4{81}$, $\frac4{243}$:
+\example{akltcorrelation}
+
+\subsection{A Kubo formula}
+The optical conductivity of a two-band chain, the Rice--Mele model~\cite{RM82}
+$H(k)=(1+0.6\cos k)\,\sigma_x+0.6\sin k\,\sigma_y+0.4\,\sigma_z$, at half filling. With the band energies $E_n(k)$, the
+occupations $f_n(k)$ and the current $J(k)=\partial_kH(k)$ in the band basis, $J_{nm}(k)=\langle nk|J(k)|mk\rangle$, the
+Kubo formula reads
+\[
+\sigma(\omega)\propto\frac iN\sum_k\sum_{nm}J_{nm}(k)\,J_{mn}(k)\,\frac{f_n(k)-f_m(k)}{E_m(k)-E_n(k)}\,
+\frac1{\omega-[E_m(k)-E_n(k)]+i\eta}.
+\]
+The bands on $N=400$ values of $k$:
+\example{kubomodel}
+The currents in the band basis, $J_{nm}(k)=\sum_{ij}\bar u_{ni}(k)J_{ij}(k)u_{mj}(k)$, for all $k$ in one einsum, where $k$
+is in three tensors:
+\example{kubocurrents}
+The last two factors of the formula are an array $W_{knm\omega}$, on 401 frequencies (zero for $n=m$):
+\example{kuboweights}
+\keepfor[8]{kubo}The formula is then one einsum, written as it reads: $k$, $n$ and $m$ each appear in three tensors. The absorption,
+$\mathrm{Re}\,\sigma(\omega)$, starts at the gap, $2\min_k E_2(k)\approx1.13$, and ends at $2\max_kE_2(k)\approx3.30$,
+with the peaks of the van Hove singularities at the edges of the band of transitions:
+\example{kubo}
+It is the sum written out:
+\example{kubocheck}
+The package computes it in two steps, the product of the currents and its contraction with the weights:
+\example{kubopath}
+
+\subsection{A loop of propagators}
+With the Green's functions $G_k(z)=[z-H(k)]^{-1}$, the trace of a loop of three, $\mathrm{Tr}\,G_k(z_1)G_k(z_2)G_k(z_3)$
+for every $k$, as in a triangle diagram of nonlinear response, is \texttt{"kab,kbc,kca->k"}. In the band basis it is
+$\sum_n\prod_i[z_i-E_n(k)]^{-1}$:
+\example{propagators}
+
+% =====================================================================================================================
+\section{How a contraction runs}
+Each pairwise contraction is classified by its indices: batch indices (in both operands and kept), contracted indices (in
+both and summed) and free indices (in one operand). Before that, the indices that appear in one operand only and are not
+needed afterwards are summed with \texttt{Total}, and diagonals are taken by one \texttt{Transpose} with repeated levels.
+Then one kernel runs:
+\begin{itemize}
+\item \textbf{Dot}: no batch index. Each operand becomes a matrix with one \texttt{Transpose} and one \texttt{ArrayReshape}
+  at most, none when its indices are already in order, and the product is one call of BLAS. Among the orders of the
+  operands and of their indices, the one that moves the least data, the final result included, is chosen.
+\item \textbf{Batch}: batch indices, $C_{bik}=\sum_jL_{bij}R_{bjk}$. A cost model chooses between a loop of \texttt{Dot}
+  (large matrices) and a vectorised product with \texttt{Total} on packed arrays (many small matrices).
+\item \textbf{Reduce}: two operands with the same indices, as \texttt{"kh,kh->h"}: the product in the layout of one of them
+  and \texttt{Total} over the contracted levels, instead of transposing both.
+\item \textbf{Hadamard}, \textbf{Prefix}, \textbf{Suffix}: no summed index; the elementwise product, or a broadcasting
+  product when the indices of one operand are the first or the last of the other. \textbf{Scale}: a scalar operand.
+\end{itemize}
+The plan of an \fn{EinsumFunction} tells the kernel of each step (and \texttt{Dot} or \texttt{Vec}, the vectorised product,
+for a batch):
+\example{kernels}
+The flops count the arithmetic; the kernels decide how fast it goes. A \texttt{Dot} runs at the speed of BLAS, and a batch of
+$2\cdot10^4$ products of $4\times4$ matrices runs as a few operations on packed arrays, not as $2\cdot10^4$ calls.
+Intermediates are freed as soon as they are used. \texttt{Examples/Benchmarks.wl} measures the timings on your computer,
+against \texttt{Dot}, \texttt{MapThread}, \texttt{TensorContract} and \texttt{Total}.
+
+% =====================================================================================================================
+\section{How it is checked}
+The test suite (\texttt{wolfram -script Tests/RunTests.wls}, 735 tests) checks 213 einsums against \texttt{numpy.einsum},
+computed in exact integer arithmetic: 63 chosen to cover every kernel, repeated with every path strategy and both batch
+methods, and 150 random ones. On 40 networks it checks that the cost of the \opt{Optimal} path equals that of an exhaustive
+search over all the orders, and that \opt{Greedy} is never cheaper. It compares results in machine precision, real and
+complex, with sums written out, and checks symbolic and sparse inputs, the syntaxes, the messages, \fn{EinsumFunction},
+the diagrams and the update check. The package was first written without Mathematica and checked with Mathics3, an
+open-source interpreter of the Wolfram Language, against \texttt{numpy.einsum} on about 2500 einsums, with every path and
+every kernel.
+
+The exhaustive search is easy to repeat: the five tensors of section~\ref{sec:order} can be contracted in
+$10\cdot6\cdot3=180$ orders, and the cheapest one costs as much as the one the package finds:
+\example{exhaustive}
+And a ring of three tensors, in integers, against its sum written out:
+\example{explicitsum}
+
+\begin{thebibliography}{9}\small
+\bibitem{SG18} D.~G.~A. Smith and J.~Gray, J.\ Open Source Softw.\ {\bf 3}, 753 (2018).
+\bibitem{GKN04} E.~R. Gansner, Y.~Koren, and S.~North, in \emph{Graph Drawing 2004}, Lect.\ Notes Comput.\ Sci.\ {\bf 3383},
+239 (Springer, 2005).
+\bibitem{AKLT87} I.~Affleck, T.~Kennedy, E.~H. Lieb, and H.~Tasaki, Phys.\ Rev.\ Lett.\ {\bf 59}, 799 (1987).
+\bibitem{RM82} M.~J. Rice and E.~J. Mele, Phys.\ Rev.\ Lett.\ {\bf 49}, 1455 (1982).
+\end{thebibliography}
+\end{document}

@@ -1,0 +1,1 @@
+EinsumDiagram["ai,ibj,jck,kd->abcd"]

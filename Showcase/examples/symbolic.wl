@@ -1,0 +1,1 @@
+MatrixForm[Einsum["ij,jk->ik", Array[a, {2, 2}], Array[b, {2, 2}]]]
