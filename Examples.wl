@@ -159,7 +159,29 @@ Einsum["ij,jk->ik", s, s] == s . s
 (* True *)
 
 (* ::Section:: *)
-(*8. A tensor network, checked by hand*)
+(*8. A Kubo formula, as it is written*)
+
+(* ::Text:: *)
+(*The optical conductivity of a two-band chain (Rice-Mele), sigma(w) = (i/N) Sum_k Sum_nm J_nm(k) J_mn(k) F_nm(k, w), with F = (f_n - f_m)/(E_m - E_n)/(w - E_m + E_n + i eta): k, n and m each appear in three tensors, and the einsum is the formula as it is written. First the bands, the current in the band basis and the occupations:*)
+
+h[k_] := (1 + 0.6 Cos[k]) PauliMatrix[1] + 0.6 Sin[k] PauliMatrix[2] + 0.4 PauliMatrix[3];
+ks = Most[Subdivide[-Pi, Pi, 400]]; ws = Subdivide[0.5, 4., 350];
+{e, u} = Transpose[Eigensystem /@ (h /@ ks)];
+current = MapThread[Conjugate[#1] . (D[h[q], q] /. q -> #2) . Transpose[#1] &, {u, ks}];
+f = UnitStep[-e];
+weight = Table[If[n == m, 0, (f[[q, n]] - f[[q, m]])/(e[[q, m]] - e[[q, n]])/(w - e[[q, m]] + e[[q, n]] + 0.05 I)], {q, 400}, {n, 2}, {m, 2}, {w, ws}];
+Dimensions /@ {current, weight}
+(* {{400, 2, 2}, {400, 2, 2, 351}}: 400 momenta, 2 bands, 351 frequencies *)
+
+sigma = I/400 Einsum["knm,kmn,knmw->w", current, current, weight];
+ListLinePlot[Transpose[{ws, Re[sigma]}], AxesLabel -> {"\[Omega]", "Re \[Sigma]"}]
+(* two peaks, near 1.2 and 3.3: the edges of the interband transitions *)
+
+Max[Abs[sigma[[{1, 100, 300}]] - Table[I/400 Sum[current[[q, n, m]] current[[q, m, n]] weight[[q, n, m, w]], {q, 400}, {n, 2}, {m, 2}], {w, {1, 100, 300}}]]] < 10^-12
+(* True: the same as the sum written out *)
+
+(* ::Section:: *)
+(*9. A tensor network, checked by hand*)
 
 (* ::Text:: *)
 (*The norm of a random matrix-product state of four sites, by Einsum, against the same contraction written out with TensorContract and Dot, one step at a time.*)
