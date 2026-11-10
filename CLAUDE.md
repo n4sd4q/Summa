@@ -45,6 +45,7 @@ Africani (SISSA). Code, comments and documents in English. Personal notes of a d
 - Semantic versioning. The version is the same in `Summa/PacletInfo.wl`, `$SummaVersion`, `CITATION.cff` (with
   `date-released`), the install lines (README, manual, wiki `Installation.md`), the title lines of the showcase and the
   manual, `wiki/_Footer.md` and `CHANGELOG.md`.
-- The paclet: `CreatePacletArchive["Summa", "build"]` from a clean checkout; test it unzipped with `PacletDirectoryLoad`,
+- The paclet: from a clean checkout, a copy of `Summa/` with `LICENSE` and `NOTICE` added, then `CreatePacletArchive` of
+  that copy (the license travels with the package); test it unzipped with `PacletDirectoryLoad`,
   never with `PacletInstall` on the author's machine. Then the tag vX.Y.Z and the GitHub release with the paclet and the two
   PDFs; `python3 Development/make_site.py` after every change of the README or the version.
