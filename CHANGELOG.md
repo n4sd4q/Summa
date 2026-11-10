@@ -3,7 +3,7 @@
 The versions are MAJOR.MINOR.PATCH (semantic versioning): a major version may change the results of code written for the
 previous one, a minor version only adds, a patch fixes. Changes to the documents alone need no release.
 
-## Unreleased
+## 1.0.0 (2026-11-10)
 
 The first public release.
 
