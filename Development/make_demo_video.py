@@ -130,11 +130,11 @@ def readme_blocks():
 
 # the cards of the video, one after the other: a heading (the capability), a second line (its examples), and the cells
 # of a notebook session typed one after the other, each with its output: ("readme", code) is the block of the README's
-# first example with that code in it (with "paste": the lines before the one with that code are pasted in at once, the
-# rest is typed); ("showcase", name) is the example name of the showcase, Showcase/examples/name.wl, with the output the
-# showcase computed (name.tex, name.txt or name.pdf). The cells make one session, in this order: each uses only the
-# values that the cells before it give, as in the README and in the showcase. A block of the README that no card shows is
-# named when the script runs.
+# first example with that code in it (with "paste": the lines before the one with that code are pasted in, quickly, one
+# after another, the rest is typed); ("showcase", name) is the example name of the showcase, Showcase/examples/name.wl,
+# with the output the showcase computed (name.tex, name.txt or name.pdf). The cells make one session, in this order:
+# each uses only the values that the cells before it give, as in the README and in the showcase. A block of the README
+# that no card shows is named when the script runs.
 CARDS = [
     ("Indices as on paper", "products, a transpose, a trace, a diagonal, sums",
      [("readme", 'Needs["Summa`"]'), ("showcase", "first"), ("showcase", "vectors"), ("showcase", "onematrix")]),
@@ -474,6 +474,7 @@ class CodeCell:
         self.colours, self.assigned = colours(code, known)
         self.pos = wrap(code, cols)
         self.advance = fnt.getlength("M")
+        self.line_of = [code.count("\n", 0, i) for i in range(len(code))]     # the line of the code of each character
         self.rows = self.pos[-1][0] + 1
         self.height = self.rows * line_height
         self.ascent = px(21)     # from the top of a row to the baseline
@@ -481,11 +482,17 @@ class CodeCell:
     def baseline(self, row):
         return self.y + row * self.lh + self.ascent
 
-    def draw(self, draw, n, cursor=False):
-        """Draw the first n characters; with the cursor after them."""
+    def draw(self, draw, n, cursor=False, shade=()):
+        """Draw the first n characters; with the cursor after them. shade: how far each of the first lines of the code
+        has come in (0 to 1: its colours from white to their own; on a white page, a fade)."""
         run, last = "", None
         for i in range(n + 1):
-            key = (self.pos[i][0], self.colours[i]) if i < n and self.code[i] != "\n" else None
+            key = None
+            if i < n and self.code[i] != "\n":
+                colour, line = self.colours[i], self.line_of[i]
+                if line < len(shade) and shade[line] < 1:
+                    colour = tuple(int(round(255 - (255 - v) * shade[line])) for v in colour)
+                key = (self.pos[i][0], colour)
             if key != last or (key and self.pos[i][1] != self.pos[i - 1][1] + 1):
                 if run.strip():
                     row, col = self.pos[i - len(run)]
@@ -973,16 +980,18 @@ class Card:
     evaluated, each followed by its output, as in a notebook: In[n]:= on the left of an input cell once it is evaluated,
     Out[n]= on the left of the output, and on the right a bracket for each cell and one around the group of an input
     with its output; a short pause after each output before the next cell. A cell whose first lines are pasted in shows
-    them at once and types the rest. The cells and their outputs are left-aligned with the caption, a little above the
-    middle of the height left under it. When they are taller than that height, they start at its top and scroll up as a
-    notebook follows what is typed and evaluated: when a cell is about to be typed, or an output appears, below the foot
-    of the space, they scroll until it ends there, or a little further, so that the top of the window (under the caption,
-    its edges softened) falls between two rows of code, or just above an output, and cuts nothing."""
+    them coming in quickly, one after another, each fading in, and types the rest. The cells and their outputs are
+    left-aligned with the caption, a little above the middle of the height left under it. When they are taller than that
+    height, they start at its top and scroll up as a notebook follows what is typed and evaluated: when a cell is about
+    to be typed, or an output appears, below the foot of the space, they scroll until it ends there, or a little
+    further, so that the top of the window (under the caption, its edges softened) falls between two rows of code, or
+    just above an output, and cuts nothing."""
     X_CODE, LH, CELL_GAP, OUT_GAP = px(122), px(30), px(24), px(18)
     X_BRACKET, X_GROUP = W - ipx(36), W - ipx(27)     # the cell brackets, and those of the groups
     FOOT = px(40)                                     # the cells end at least this far above the foot of the frame
     SCROLL_TIME, EDGE = 0.7, ipx(6)                   # how long a scroll lasts (s), how soft the edges of the window
     READ = 0.9                                        # the pause after an output, before the next cell (s)
+    PASTE_GAP, PASTE_FADE = 0.08, 0.18                # the pasted lines come in one after another (s), each fading in
 
     def __init__(self, el, base, k, cells, session, hold, start=0.45):
         """cells: [(code, name of the output element or None, the code from whose line on the cell is typed, or None:
@@ -1004,11 +1013,15 @@ class Card:
             code = notebook_text(code)
             cell = CodeCell(code, session["known"], self.codefont, self.X_CODE, y, self.LH, cols)
             n = expressions(code)
-            # the lines before the one with `typed` are there at once (pasted in); the rest is typed
+            # the lines before the one with `typed` are pasted in: they come in one after another, top to bottom, each
+            # fading in; the rest is typed
             pre = code.rfind("\n", 0, code.index(typed)) + 1 if typed else 0
+            lines = code.count("\n", 0, pre)
+            paste = lines * self.PASTE_GAP + self.PASTE_FADE / 2 if lines else 0.0
             typing = min(1.15, max(0.55, (len(code) - pre) / 150))
-            c = dict(cell=cell, n=session["line"], t0=t, pre=pre, cps=(len(code) - pre) / typing, t_eval=t + typing + 0.15,
-                     top=y - px(8))
+            c = dict(cell=cell, n=session["line"], t0=t, pre=pre, lines=lines, t_type=t + paste,
+                     ends=[k + 1 for k in range(pre) if code[k] == "\n"], cps=(len(code) - pre) / typing,
+                     t_eval=t + paste + typing + 0.15, top=y - px(8))
             session["line"] += n
             session["known"] |= cell.assigned
             if re.search(r"Needs\[\"Summa`\"\]", code):
@@ -1118,10 +1131,15 @@ class Card:
             if t < c["t0"]:
                 break
             cell = c["cell"]
-            n = min(len(cell.code), c["pre"] + int((t - c["t0"]) * c["cps"]))
+            if t < c["t_type"]:
+                # pasting: the lines begun so far, each on its way in
+                n = c["ends"][min(c["lines"], int((t - c["t0"]) / self.PASTE_GAP) + 1) - 1]
+            else:
+                n = min(len(cell.code), c["pre"] + int((t - c["t_type"]) * c["cps"]))
+            shade = [ease_out((t - c["t0"] - j * self.PASTE_GAP) / self.PASTE_FADE) for j in range(c["lines"])]
             typing = t < c["t_eval"]
             blink = n < len(cell.code) or int(t * 2.2) % 2 == 0
-            cell.draw(d, n, cursor=typing and blink)
+            cell.draw(d, n, cursor=typing and blink, shade=shade)
             if t >= c["t_eval"]:
                 self.label(d, "In[%d]:=" % c["n"], cell.baseline(0), LABEL)
             self.bracket(d, self.X_BRACKET, c["top"], c["input_bottom"])
